@@ -14,4 +14,7 @@ public interface SaintService {
     List<Saint> getByLanguageAndFeastDate(String lang, LocalDate date);
     List<Saint> getByLanguageAndFeastMonth(String lang, int month);
     List<Saint> getByLanguageAndFeastDay(String lang, int day);
+    Saint save(Saint saint);
+    List<Saint> saveAll(List<Saint> saints);
+    void deleteById(String id);
 }

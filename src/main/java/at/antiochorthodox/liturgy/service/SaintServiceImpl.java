@@ -57,5 +57,19 @@ public class SaintServiceImpl implements SaintService {
         String pattern = String.format("-%02d$", day);
         return repository.findByLangAndFeastDatePattern(lang, pattern);
     }
+    @Override
+    public Saint save(Saint saint) {
+        return repository.save(saint);
+    }
+
+    @Override
+    public List<Saint> saveAll(List<Saint> saints) {
+        return repository.saveAll(saints);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
+    }
 }
 

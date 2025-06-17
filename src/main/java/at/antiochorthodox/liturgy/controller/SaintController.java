@@ -54,4 +54,18 @@ public class SaintController {
     public List<Saint> getByDay(@PathVariable String lang, @PathVariable int day) {
         return saintService.getByLanguageAndFeastDay(lang, day);
     }
+    @PostMapping
+    public Saint createSaint(@RequestBody Saint saint) {
+        return saintService.save(saint);
+    }
+
+    @PostMapping("/bulk")
+    public List<Saint> createSaints(@RequestBody List<Saint> saints) {
+        return saintService.saveAll(saints);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteSaint(@PathVariable String id) {
+        saintService.deleteById(id);
+    }
 }
