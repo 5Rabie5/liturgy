@@ -1,3 +1,4 @@
+// --- Feast.java (Model) ---
 package at.antiochorthodox.liturgy.model;
 
 import lombok.*;
@@ -15,13 +16,16 @@ public class Feast {
     private String id;
 
     private String name;
-    private String type;         // fixed, movable, pascha, etc.
-    private String date;         // "MM-dd" for fixed OR "PASCHA+1", "PASCHA-40"
+    private String lang;
+
+    private String type; // "fixed" or "paschal"
+    private String date; // for fixed feasts (format: MM-dd)
+    private Integer offsetFromPascha; // for paschal feasts (e.g. -7 for Palm Sunday)
+
+    private String group;     // مثل: سيدية، شهود، أنبياء
+    private String priority;  // مرتبة طقسية أو أهمية
+
     private String shortdesc;
     private String desc;
     private String iconUrl;
-    private String tag;
-    private String lang;
-    private Integer priority;    // ترتيب حسب الأهمية
-    private String group;        // تصنيف العيد
 }
