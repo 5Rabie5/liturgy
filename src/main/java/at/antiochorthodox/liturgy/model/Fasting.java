@@ -17,6 +17,7 @@ public class Fasting {
     private String id;
 
     private String lang;
+    private String name;
     private String type; // christmas, lent, apostles, dormition, wednesday-friday...
 
     private String startDate; // MM-dd (ثابت)

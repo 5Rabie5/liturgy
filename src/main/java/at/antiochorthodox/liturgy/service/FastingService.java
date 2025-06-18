@@ -2,6 +2,7 @@ package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.model.Fasting;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,4 +14,6 @@ public interface FastingService {
     Fasting save(Fasting fasting);
     List<Fasting> saveAll(List<Fasting> fastingList);
     void deleteById(String id);
+    List<Fasting> getAllFastingForYear(String lang, int year);
+    Optional<Fasting> getFastingForDate(String lang, LocalDate date);
 }
