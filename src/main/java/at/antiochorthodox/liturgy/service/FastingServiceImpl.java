@@ -58,7 +58,7 @@ public class FastingServiceImpl implements FastingService {
         List<Fasting> all = repository.findByLang(lang);
         List<Fasting> result = new ArrayList<>();
 
-        LocalDate paschaDate = PaschaDateCalculator.calculateOrthodoxEaster(year);
+        LocalDate paschaDate = PaschaDateCalculator.getPaschaDate(year);
 
         for (Fasting fasting : all) {
             if (fasting.getStartDate() != null && fasting.getEndDate() != null) {
