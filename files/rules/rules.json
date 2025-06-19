@@ -1,0 +1,94 @@
+[
+  {
+    "occasionTypes": ["Sunday_Lent", "Feast_Lord_Fixed"],
+    "description": "إذا وقع أحد الصوم الكبير مع عيد سيّدي ثابت",
+    "gospelPriority": "Feast_Lord_Fixed",
+    "epistlePriority": "Feast_Lord_Fixed",
+    "katavasiaPriority": "Feast_Lord_Fixed",
+    "iothinaPriority": "Sunday_Lent",
+    "kontakionPriority": "Feast_Lord_Fixed",
+    "tonePriority": "Sunday_Lent",
+    "allowAlternative": true,
+    "alternativeExplanation": "يمكن الجمع أو حسب الدليل المحلي",
+    "notes": "راجع دليل الكرسي الأنطاكي والتيبيكون"
+  },
+  {
+    "occasionTypes": ["Sunday_Pascha", "Feast_Theotokos"],
+    "description": "إذا وقع أحد الفصح مع عيد سيدتنا",
+    "gospelPriority": "Sunday_Pascha",
+    "epistlePriority": "Sunday_Pascha",
+    "katavasiaPriority": "Sunday_Pascha",
+    "iothinaPriority": "Sunday_Pascha",
+    "kontakionPriority": "Sunday_Pascha",
+    "tonePriority": "Sunday_Pascha",
+    "allowAlternative": false,
+    "alternativeExplanation": null,
+    "notes": "الأولوية المطلقة للفصح"
+  },
+  {
+    "occasionTypes": ["Sunday_Normal", "Great_Saint"],
+    "description": "إذا وقع أحد عادي مع قديس ممتاز",
+    "gospelPriority": "Sunday_Normal",
+    "epistlePriority": "Sunday_Normal",
+    "katavasiaPriority": "Sunday_Normal",
+    "iothinaPriority": "Sunday_Normal",
+    "kontakionPriority": "Sunday_Normal",
+    "tonePriority": "Sunday_Normal",
+    "allowAlternative": true,
+    "alternativeExplanation": "يُذكر القديس في الذِّكرى وتقرأ قراءته إن رغبت الرعية",
+    "notes": "حسب الدليل: القراءات الرئيسية للأحد"
+  },
+  {
+    "occasionTypes": ["Sunday_Lent", "Feast_Annunciation"],
+    "description": "إذا وقع أحد الصوم الكبير مع عيد البشارة",
+    "gospelPriority": "Feast_Annunciation",
+    "epistlePriority": "Feast_Annunciation",
+    "katavasiaPriority": "Feast_Annunciation",
+    "iothinaPriority": "Sunday_Lent",
+    "kontakionPriority": "Feast_Annunciation",
+    "tonePriority": "Feast_Annunciation",
+    "allowAlternative": true,
+    "alternativeExplanation": "يمكن قراءة أحد الصوم حسب التقليد",
+    "notes": "راجع الدليل الأنطاكي والتيبيكون"
+  },
+  {
+    "occasionTypes": ["Sunday_Resurrection", "Exaltation_Cross"],
+    "description": "إذا وقع أحد القيامة مع عيد ارتفاع الصليب",
+    "gospelPriority": "Exaltation_Cross",
+    "epistlePriority": "Exaltation_Cross",
+    "katavasiaPriority": "Exaltation_Cross",
+    "iothinaPriority": "Sunday_Resurrection",
+    "kontakionPriority": "Exaltation_Cross",
+    "tonePriority": "Sunday_Resurrection",
+    "allowAlternative": false,
+    "alternativeExplanation": null,
+    "notes": "تُقرأ قراءات عيد الصليب فقط"
+  },
+  {
+    "occasionTypes": ["Sunday_Normal", "Simple_Saint"],
+    "description": "إذا وقع أحد عادي مع قديس بسيط",
+    "gospelPriority": "Sunday_Normal",
+    "epistlePriority": "Sunday_Normal",
+    "katavasiaPriority": "Sunday_Normal",
+    "iothinaPriority": "Sunday_Normal",
+    "kontakionPriority": "Sunday_Normal",
+    "tonePriority": "Sunday_Normal",
+    "allowAlternative": false,
+    "alternativeExplanation": null,
+    "notes": "يُذكر اسم القديس فقط"
+  },
+  {
+    "occasionTypes": ["Sunday_Normal", "Feast_Pentecost"],
+    "description": "إذا وقع أحد عادي مع عيد العنصرة",
+    "gospelPriority": "Feast_Pentecost",
+    "epistlePriority": "Feast_Pentecost",
+    "katavasiaPriority": "Feast_Pentecost",
+    "iothinaPriority": "Feast_Pentecost",
+    "kontakionPriority": "Feast_Pentecost",
+    "tonePriority": "Feast_Pentecost",
+    "allowAlternative": false,
+    "alternativeExplanation": null,
+    "notes": "العنصرة أولاً"
+  }
+]
+
