@@ -16,4 +16,5 @@ public interface FastingService {
     void deleteById(String id);
     List<Fasting> getAllFastingForYear(String lang, int year);
     Optional<Fasting> getFastingForDate(String lang, LocalDate date);
+    String getFastingTypeByLangAndDate(String lang, LocalDate date );
 }

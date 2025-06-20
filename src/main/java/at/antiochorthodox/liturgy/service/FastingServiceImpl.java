@@ -1,12 +1,14 @@
 package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.model.Fasting;
+import at.antiochorthodox.liturgy.model.Feast;
 import at.antiochorthodox.liturgy.repository.FastingRepository;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.Optional;
 public class FastingServiceImpl implements FastingService {
 
     private final FastingRepository repository;
-
+    private final  PaschaDateCalculator paschaDateCalculator;
     @Override
     public Optional<Fasting> getById(String id) {
         return repository.findById(id);
@@ -104,5 +106,53 @@ public class FastingServiceImpl implements FastingService {
                 })
                 .sorted(Comparator.comparingInt(Fasting::getFastingLevel)) // أو حسب الأولوية
                 .findFirst();
+    }
+
+
+
+    @Override
+    public String getFastingTypeByLangAndDate(String lang, LocalDate date) {
+        LocalDate paschaDate = PaschaDateCalculator.getPaschaDate(date.getYear());
+        List<Fasting> fastings = repository.findByLang(lang);
+
+        // تكرار على جميع الأصوام المعرّفة
+        for (Fasting fast : fastings) {
+            // 1. حالة repeatWeekly (أربعاء أو جمعة)
+            if (fast.isRepeatWeekly()) {
+                if (date.getDayOfWeek().getValue() == 3 || date.getDayOfWeek().getValue() == 5) { // Wednesday=3, Friday=5
+                    return fast.getSymbol() != null ? fast.getSymbol() : fast.getName();
+                }
+            }
+            // 2. حالة تواريخ ثابتة (MM-dd)
+            if (fast.getStartDate() != null && fast.getEndDate() != null) {
+                String current = String.format("%02d-%02d", date.getMonthValue(), date.getDayOfMonth());
+                boolean inRange = isInRange(current, fast.getStartDate(), fast.getEndDate());
+                if (inRange) {
+                    return fast.getSymbol() != null ? fast.getSymbol() : fast.getName();
+                }
+            }
+            // 3. حالة offsets من الفصح (متغير)
+            if (fast.getStartOffsetFromPascha() != null && fast.getEndOffsetFromPascha() != null && paschaDate != null) {
+                LocalDate start = paschaDate.plusDays(fast.getStartOffsetFromPascha());
+                LocalDate end = paschaDate.plusDays(fast.getEndOffsetFromPascha());
+                if ((date.isEqual(start) || date.isAfter(start)) && (date.isEqual(end) || date.isBefore(end))) {
+                    return fast.getSymbol() != null ? fast.getSymbol() : fast.getName();
+                }
+            }
+        }
+        // إذا لا يوجد أي صوم يطابق
+        return "بدون صوم خاص";
+    }
+
+    // فحص أن current (MM-dd) بين start وend (يدعم عبور السنة)
+    private boolean isInRange(String current, String start, String end) {
+        int c = Integer.parseInt(current.replace("-", ""));
+        int s = Integer.parseInt(start.replace("-", ""));
+        int e = Integer.parseInt(end.replace("-", ""));
+        if (s <= e) {
+            return (c >= s && c <= e);
+        } else { // إذا كان الصوم يعبر نهاية السنة (مثلاً: من 11-15 إلى 01-05)
+            return (c >= s || c <= e);
+        }
     }
 }

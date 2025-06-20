@@ -5,6 +5,7 @@ import at.antiochorthodox.liturgy.repository.FeastRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,4 +20,8 @@ public interface FeastService {
     Feast save(Feast feast);
     List<Feast> saveAll(List<Feast> feasts);
     void deleteById(String id);
+    String findFixedFeastNameByLangAndDate(String lang, LocalDate date);
+    String findMovableFeastNameByLangAndDate(String lang, LocalDate date);
+
+
 }

@@ -16,9 +16,7 @@ import java.util.Optional;
 public class SaintServiceImpl implements SaintService {
 
     private final SaintRepository repository;
-//    public SaintServiceImpl(SaintRepository repository) {
-//        this.repository = repository;
-//    }
+
 
     @Override
     public Optional<Saint> getById(String id) {
@@ -70,6 +68,19 @@ public class SaintServiceImpl implements SaintService {
     @Override
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public List<String> findNamesByLangAndDate(String lang, LocalDate date) {
+        String dateString = date.format(DateTimeFormatter.ISO_DATE); // أو حسب تنسيق تواريخك
+        List<Saint> saints = repository.findByLang(lang);
+        return saints.stream()
+                .filter(saint ->
+                        saint.getFeasts() != null &&
+                                saint.getFeasts().stream().anyMatch(feast -> dateString.equals(feast.getDate()))
+                )
+                .map(Saint::getName)
+                .toList();
     }
 }
 

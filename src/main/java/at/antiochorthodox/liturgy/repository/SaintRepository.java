@@ -4,6 +4,8 @@ import at.antiochorthodox.liturgy.model.Saint;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface SaintRepository extends MongoRepository<Saint, String> {
@@ -14,4 +16,5 @@ public interface SaintRepository extends MongoRepository<Saint, String> {
 
     @Query("{ 'lang': ?0, 'feasts.date': { \"$regex\": ?1 } }")
     List<Saint> findByLangAndFeastDatePattern(String lang, String regex);
-}
+
+  }

@@ -1,7 +1,9 @@
 package at.antiochorthodox.liturgy.util;
 
-import java.time.LocalDate;
+import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+@Component
 public class PaschaDateCalculator {
 
     // تاريخ الفصح الأرثوذكسي (Gregorian)

@@ -1,6 +1,7 @@
 package at.antiochorthodox.liturgy.model;
 
 import lombok.*;
+
 import java.util.List;
 
 @Data
@@ -8,10 +9,11 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ScriptureReadingOption {
+    private String label;            // "Feast Readings", "Sunday Readings", ...
+    private String reason;           // سبب تفعيل هذا الخيار
+    private Boolean preferred;       // هو المفضل؟
 
-    private String label;       // e.g. "Feast Readings", "Sunday Readings"
-    private String reason;      // Reason for this option (overlap, exception, etc.)
-    private Boolean preferred;  // Is this the default/typical option?
-
-    private List<ScriptureReading> readings; // List of scripture readings for this option
+    private ScriptureReading gospel; // الإنجيل (يمكن أن يكون null إذا لم يوجد)
+    private ScriptureReading epistle;// الرسالة (يمكن أن يكون null إذا لم يوجد)
+    private List<ScriptureReading> alternativeReadings; // أي قراءات أخرى إضافية
 }

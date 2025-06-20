@@ -17,4 +17,6 @@ public interface SaintService {
     Saint save(Saint saint);
     List<Saint> saveAll(List<Saint> saints);
     void deleteById(String id);
+    List<String> findNamesByLangAndDate(String lang, LocalDate date);
+
 }

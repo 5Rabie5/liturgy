@@ -1,8 +1,10 @@
 package at.antiochorthodox.liturgy.repository;
 
 import at.antiochorthodox.liturgy.model.Feast;
+import com.mongodb.client.MongoIterable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface FeastRepository extends MongoRepository<Feast, String> {
@@ -12,4 +14,5 @@ public interface FeastRepository extends MongoRepository<Feast, String> {
     List<Feast> findByLangAndGroup(String lang, String group);
     List<Feast> findByLangAndType(String lang, String type);
     List<Feast> findByLangAndNameContainingIgnoreCase(String lang, String namePart);
+
 }

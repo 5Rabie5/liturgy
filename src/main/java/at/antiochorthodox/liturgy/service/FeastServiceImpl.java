@@ -5,6 +5,8 @@ import at.antiochorthodox.liturgy.repository.FeastRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,5 +59,27 @@ class FeastServiceImpl implements FeastService {
     @Override
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public String findFixedFeastNameByLangAndDate(String lang, LocalDate date) {
+        String dateString = date.format(DateTimeFormatter.ISO_DATE);
+        List<Feast> feasts = repository.findByLangAndDate(lang, dateString);
+        return feasts.stream()
+                .filter(f -> "fixed".equalsIgnoreCase(f.getType()))
+                .map(Feast::getName)
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    public String findMovableFeastNameByLangAndDate(String lang, LocalDate date) {
+        String dateString = date.format(DateTimeFormatter.ISO_DATE);
+        List<Feast> feasts = repository.findByLangAndDate(lang, dateString);
+        return feasts.stream()
+                .filter(f -> "paschal".equalsIgnoreCase(f.getType()))
+                .map(Feast::getName)
+                .findFirst()
+                .orElse(null);
     }
 }
