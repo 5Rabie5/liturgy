@@ -60,7 +60,7 @@ public class FastingServiceImpl implements FastingService {
         List<Fasting> all = repository.findByLang(lang);
         List<Fasting> result = new ArrayList<>();
 
-        LocalDate paschaDate = PaschaDateCalculator.getPaschaDate(year);
+        LocalDate paschaDate = paschaDateCalculator.getPaschaDate(year);
 
         for (Fasting fasting : all) {
             if (fasting.getStartDate() != null && fasting.getEndDate() != null) {
@@ -112,7 +112,7 @@ public class FastingServiceImpl implements FastingService {
 
     @Override
     public String getFastingTypeByLangAndDate(String lang, LocalDate date) {
-        LocalDate paschaDate = PaschaDateCalculator.getPaschaDate(date.getYear());
+        LocalDate paschaDate = paschaDateCalculator.getPaschaDate(date.getYear());
         List<Fasting> fastings = repository.findByLang(lang);
 
         // تكرار على جميع الأصوام المعرّفة

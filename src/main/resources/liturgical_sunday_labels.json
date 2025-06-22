@@ -1,0 +1,184 @@
+{
+  "PHARISEE_PUBLICAN": {
+    "ar": "أحد الفريسي والعشار",
+    "en": "Sunday of the Pharisee and the Publican",
+    "de": "Sonntag des Pharisäers und des Zöllners",
+    "nl": "Zondag van de Farizeeër en de Tol",
+    "fr": "Dimanche du Pharisien et du Publicain"
+  },
+  "PRODIGAL_SON": {
+    "ar": "أحد الإبن الشاطر",
+    "en": "Sunday of the Prodigal Son",
+    "de": "Sonntag des verlorenen Sohnes",
+    "nl": "Zondag van de Verloren Zoon",
+    "fr": "Dimanche du Fils prodigue"
+  },
+  "BRANCH_SUNDAY": {
+    "ar": "أحد مرفع اللحم",
+    "en": "Meatfare Sunday",
+    "de": "Fleischfastensonntag",
+    "nl": "Vleessunday",
+    "fr": "Dimanche de viande"
+  },
+  "CHEESE_SUNDAY": {
+    "ar": "أحد مرفع الجبن",
+    "en": "Cheesefare Sunday",
+    "de": "Käsefastensonntag",
+    "nl": "Kaassunday",
+    "fr": "Dimanche du fromage"
+  },
+  "FIRST_LENT_SUNDAY_ORTHODOX": {
+    "ar": "الأحد الأول من الصوم (الأرثوذكسية)",
+    "en": "First Sunday of Lent (Orthodox)",
+    "de": "Erster Fastensonntag (Orthodox)",
+    "nl": "Eerste zondag van de vasten (Orthodox)",
+    "fr": "Premier dimanche de Carême (Orthodoxe)"
+  },
+  "SECOND_LENT_SUNDAY_PALAMAS": {
+    "ar": "الأحد الثاني من الصوم (غريغوريوس بالاماس)",
+    "en": "Second Sunday of Lent (Gregory Palamas)",
+    "de": "Zweiter Fastensonntag (Gregor von Palamas)",
+    "nl": "Tweede zondag van de vasten (Gregorius Palamas)",
+    "fr": "Deuxième dimanche de Carême (Grégoire Palamas)"
+  },
+  "THIRD_LENT_SUNDAY_CROSS_VENERATION": {
+    "ar": "الأحد الثالث من الصوم (السجود للصليب)",
+    "en": "Third Sunday of Lent (Cross Veneration)",
+    "de": "Dritter Fastensonntag (Kreuzverehrung)",
+    "nl": "Derde zondag van de vasten (Kruisverering)",
+    "fr": "Troisième dimanche de Carême (Vénération de la Croix)"
+  },
+  "FOURTH_LENT_SUNDAY_JOHN_CLIMACUS": {
+    "ar": "الأحد الرابع من الصوم (يوحنا السلمي)",
+    "en": "Fourth Sunday of Lent (John Climacus)",
+    "de": "Vierter Fastensonntag (Johannes Klimakos)",
+    "nl": "Vierde zondag van de vasten (Johannes van de Klimax)",
+    "fr": "Quatrième dimanche de Carême (Jean de la Croix)"
+  },
+  "FIFTH_LENT_SUNDAY_MARY_EGYPT": {
+    "ar": "الأحد الخامس من الصوم (مريم المصرية)",
+    "en": "Fifth Sunday of Lent (Mary of Egypt)",
+    "de": "Fünfter Fastensonntag (Maria von Ägypten)",
+    "nl": "Vijfde zondag van de vasten (Maria van Egypte)",
+    "fr": "Cinquième dimanche de Carême (Marie d’Égypte)"
+  },
+  "PALM_SUNDAY": {
+    "ar": "أحد الشعانين",
+    "en": "Palm Sunday",
+    "de": "Palmsonntag",
+    "nl": "Palmpasen",
+    "fr": "Dimanche des Rameaux"
+  },
+  "PASCHA_SUNDAY": {
+    "ar": "أحد الفصح (أحد القيامة)",
+    "en": "Pascha Sunday (Resurrection)",
+    "de": "Pascha (Auferstehungssonntag)",
+    "nl": "Pasen (Resurrection zondag)",
+    "fr": "Pâques (Dimanche de la Résurrection)"
+  },
+  "THOMAS_SUNDAY": {
+    "ar": "أحد توما",
+    "en": "Thomas Sunday",
+    "de": "Thomas-Sonntag",
+    "nl": "Thomaszondag",
+    "fr": "Dimanche de Thomas"
+  },
+  "MYRRH_BEARING_WOMEN_SUNDAY": {
+    "ar": "أحد حاملات الطيب",
+    "en": "Myrrh-Bearing Women Sunday",
+    "de": "Myrrhenträgerinnen-Sonntag",
+    "nl": "Zondag van de Mirre-draagsters",
+    "fr": "Dimanche des Myrrhophores"
+  },
+  "PARALYTIC_SUNDAY": {
+    "ar": "أحد المخلع",
+    "en": "Paralytic Sunday",
+    "de": "Lähmungssonntag",
+    "nl": "Lamzondag",
+    "fr": "Dimanche de la Paralytique"
+  },
+  "SAMARITAN_WOMAN_SUNDAY": {
+    "ar": "أحد السامرية",
+    "en": "Samaritan Woman Sunday",
+    "de": "Samariterfrau-Sonntag",
+    "nl": "Zondag van de Samaritaanse vrouw",
+    "fr": "Dimanche de la Samaritaine"
+  },
+  "BLIND_MAN_SUNDAY": {
+    "ar": "أحد الأعمى",
+    "en": "Blind Man Sunday",
+    "de": "Blinden-Sonntag",
+    "nl": "Blindenzondag",
+    "fr": "Dimanche de l’Aveugle"
+  },
+  "ASCENSION_SUNDAY": {
+    "ar": "أحد الصعود",
+    "en": "Ascension Sunday",
+    "de": "Christi Himmelfahrt",
+    "nl": "Hemelvaartsdag",
+    "fr": "Ascension"
+  },
+  "PENTECOST_SUNDAY": {
+    "ar": "أحد العنصرة",
+    "en": "Pentecost Sunday",
+    "de": "Pfingstsonntag",
+    "nl": "Pinksteren",
+    "fr": "Pentecôte"
+  },
+  "ALL_SAINTS_SUNDAY": {
+    "ar": "أحد جميع القديسين",
+    "en": "All Saints’ Sunday",
+    "de": "Allerheiligen-Sonntag",
+    "nl": "Allerheiligenzondag",
+    "fr": "Dimanche de la Toussaint"
+  },
+  "SUNDAY_BEFORE_EXALTATION": {
+    "ar": "الأحد الذي قبل عيد رفع الصليب",
+    "en": "Sunday Before the Exaltation",
+    "de": "Sonntag vor der Kreuzerhöhung",
+    "nl": "Zondag vóór Kruisverheffing",
+    "fr": "Dimanche avant l'Exaltation de la Croix"
+  },
+  "SUNDAY_AFTER_EXALTATION": {
+    "ar": "الأحد الذي بعد عيد رفع الصليب",
+    "en": "Sunday After the Exaltation",
+    "de": "Sonntag nach der Kreuzerhöhung",
+    "nl": "Zondag na Kruisverheffing",
+    "fr": "Dimanche après l’Exaltation de la Croix"
+  },
+  "FOREFATHERS_SUNDAY": {
+    "ar": "أحد الآباء القديسين (الأجداد)",
+    "en": "Sunday of the Forefathers",
+    "de": "Sonntag der Vorväter",
+    "nl": "Zondag van de Voorouders",
+    "fr": "Dimanche des Ancêtres"
+  },
+  "SUNDAY_BEFORE_NATIVITY": {
+    "ar": "الأحد الذي قبل عيد ميلاد المسيح",
+    "en": "Sunday Before Nativity",
+    "de": "Sonntag vor der Geburt des Herrn",
+    "nl": "Zondag vóór Kerstmis",
+    "fr": "Dimanche avant la Nativité"
+  },
+  "SUNDAY_AFTER_NATIVITY": {
+    "ar": "الأحد الذي بعد عيد ميلاد المسيح",
+    "en": "Sunday After Nativity",
+    "de": "Sonntag nach der Geburt des Herrn",
+    "nl": "Zondag na Kerstmis",
+    "fr": "Dimanche après la Nativité"
+  },
+  "SUNDAY_BEFORE_THEOPHANY": {
+    "ar": "الأحد الذي قبل عيد الظهور الإلهي",
+    "en": "Sunday Before Theophany",
+    "de": "Sonntag vor der Theophanie",
+    "nl": "Zondag vóór Epifanie",
+    "fr": "Dimanche avant la Théophanie"
+  },
+  "SUNDAY_AFTER_THEOPHANY": {
+    "ar": "الأحد الذي بعد عيد الظهور الإلهي",
+    "en": "Sunday After Theophany",
+    "de": "Sonntag nach der Theophanie",
+    "nl": "Zondag na Epifanie",
+    "fr": "Dimanche après la Théophanie"
+  }
+}

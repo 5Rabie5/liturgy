@@ -1,31 +1,35 @@
 package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.Month;
-
+@AllArgsConstructor
 @Service
 public class LiturgicalCalendarService {
+private final PaschaDateCalculator paschaDateCalculator;
+
+
 
     // هل اليوم ضمن الصوم الكبير؟
     public boolean isGreatLent(LocalDate date) {
-        LocalDate lentStart = PaschaDateCalculator.getGreatLentStart(date.getYear());
-        LocalDate lentEnd = PaschaDateCalculator.getGreatLentEnd(date.getYear());
+        LocalDate lentStart = paschaDateCalculator.getGreatLentStart(date.getYear());
+        LocalDate lentEnd = paschaDateCalculator.getGreatLentEnd(date.getYear());
         return !date.isBefore(lentStart) && !date.isAfter(lentEnd);
     }
 
     // هل اليوم بين سبت التجديدات وأحد توما؟
     public boolean isRenewalWeekSaturdayToThomasSunday(LocalDate date) {
-        LocalDate renewalSaturday = PaschaDateCalculator.getRenewalSaturday(date.getYear());
-        LocalDate thomasSunday = PaschaDateCalculator.getThomasSunday(date.getYear());
+        LocalDate renewalSaturday = paschaDateCalculator.getRenewalSaturday(date.getYear());
+        LocalDate thomasSunday = paschaDateCalculator.getThomasSunday(date.getYear());
         return !date.isBefore(renewalSaturday) && !date.isAfter(thomasSunday);
     }
 
     // هل اليوم هو أحد العنصرة؟
     public boolean isPentecostSunday(LocalDate date) {
-        return date.equals(PaschaDateCalculator.getPentecostDate(date.getYear()));
+        return date.equals(paschaDateCalculator.getPentecostDate(date.getYear()));
     }
 
     // هل اليوم في صوم الميلاد (20-25 كانون الأول)؟

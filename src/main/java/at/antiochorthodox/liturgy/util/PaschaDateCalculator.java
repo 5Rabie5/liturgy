@@ -7,7 +7,7 @@ import java.time.LocalDate;
 public class PaschaDateCalculator {
 
     // تاريخ الفصح الأرثوذكسي (Gregorian)
-    public static LocalDate getPaschaDate(int year) {
+    public  LocalDate getPaschaDate(int year) {
         int a = year % 19;
         int b = year % 4;
         int c = year % 7;
@@ -30,27 +30,27 @@ public class PaschaDateCalculator {
     }
 
     // بداية الصوم الكبير (الإثنين النظيف)
-    public static LocalDate getGreatLentStart(int year) {
+    public  LocalDate getGreatLentStart(int year) {
         return getPaschaDate(year).minusWeeks(7);
     }
 
     // نهاية الصوم الكبير (الجمعة العظيمة)
-    public static LocalDate getGreatLentEnd(int year) {
+    public  LocalDate getGreatLentEnd(int year) {
         return getPaschaDate(year).minusDays(2);
     }
 
     // سبت التجديدات (أول سبت بعد الفصح)
-    public static LocalDate getRenewalSaturday(int year) {
+    public  LocalDate getRenewalSaturday(int year) {
         return getPaschaDate(year).plusDays(6);
     }
 
     // أحد توما (الأحد الثاني بعد الفصح)
-    public static LocalDate getThomasSunday(int year) {
+    public  LocalDate getThomasSunday(int year) {
         return getPaschaDate(year).plusDays(7);
     }
 
     // أحد العنصرة (اليوم الـ50 بعد الفصح)
-    public static LocalDate getPentecostDate(int year) {
+    public  LocalDate getPentecostDate(int year) {
         return getPaschaDate(year).plusDays(49);
     }
 }

@@ -8,5 +8,6 @@ public enum ByzantinePieceType {
     KONTAKION,      // الكونداكيون
     EXAPOSTILARION, // الإكسابوستيلاريون
     THEOTOKION,     // الثيئوتوكيون
+
     // يمكنك إضافة أي نوع آخر تحتاجه هنا
 }
