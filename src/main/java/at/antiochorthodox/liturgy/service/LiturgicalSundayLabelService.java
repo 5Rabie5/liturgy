@@ -18,13 +18,13 @@ public class LiturgicalSundayLabelService {
     public void loadLabels() {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            InputStream is = getClass().getClassLoader().getResourceAsStream("liturgical_sunday_labels.json");
+            InputStream is = getClass().getClassLoader().getResourceAsStream("liturgical_sundays.json");
             if (is == null) {
-                throw new IllegalStateException("لم يتم العثور على ملف التسميات: liturgical_sunday_labels.json");
+                throw new IllegalStateException("لم يتم العثور على ملف التسميات: liturgical_sundays.json");
             }
             labelMap = mapper.readValue(is, new TypeReference<Map<String, Map<String, String>>>() {});
         } catch (Exception e) {
-            throw new RuntimeException("تعذر تحميل أو قراءة ملف التسميات liturgical_sunday_labels.json", e);
+            throw new RuntimeException("تعذر تحميل أو قراءة ملف التسميات liturgical_sundays.json", e);
         }
     }
 

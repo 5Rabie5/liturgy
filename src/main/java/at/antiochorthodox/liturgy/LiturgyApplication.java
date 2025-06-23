@@ -8,6 +8,8 @@ public class LiturgyApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(LiturgyApplication.class, args);
+
+
 	}
 
 }
