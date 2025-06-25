@@ -50,7 +50,7 @@ public class LiturgicalCalendarDayBuilderService {
                     .orElse(options.get(0));
 
             // الإنجيل
-            if (option.getGospel() != null && lang.equals(option.getGospel().getLanguage())) {
+            if (option.getGospel() != null && lang.equals(option.getGospel().getLang())) {
                 gospelReading = option.getGospel().getReference();
             } else if (option.getGospel() != null) {
                 // إذا لم توجد نسخة بلغة lang، أعطِ أي نسخة متوفرة
@@ -58,7 +58,7 @@ public class LiturgicalCalendarDayBuilderService {
             }
 
             // الرسالة
-            if (option.getEpistle() != null && lang.equals(option.getEpistle().getLanguage())) {
+            if (option.getEpistle() != null && lang.equals(option.getEpistle().getLang())) {
                 epistleReading = option.getEpistle().getReference();
             } else if (option.getEpistle() != null) {
                 epistleReading = option.getEpistle().getReference();
@@ -67,7 +67,7 @@ public class LiturgicalCalendarDayBuilderService {
             // القراءات البديلة (كلها أو فقط التي باللغة المطلوبة)
             alternativeReadings = option.getAlternativeReadings() != null ?
                     option.getAlternativeReadings().stream()
-                            .filter(reading -> lang.equals(reading.getLanguage()))
+                            .filter(reading -> lang.equals(reading.getLang()))
                             .map(ScriptureReading::getReference)
                             .toList()
                     : Collections.emptyList();

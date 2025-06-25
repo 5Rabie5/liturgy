@@ -16,4 +16,6 @@ public class ScriptureReadingOption {
     private ScriptureReading gospel; // الإنجيل (يمكن أن يكون null إذا لم يوجد)
     private ScriptureReading epistle;// الرسالة (يمكن أن يكون null إذا لم يوجد)
     private List<ScriptureReading> alternativeReadings; // أي قراءات أخرى إضافية
+    private String lang;
+    private String desc;
 }

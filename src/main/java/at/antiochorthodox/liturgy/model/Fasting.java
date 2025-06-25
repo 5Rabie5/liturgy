@@ -38,5 +38,5 @@ public class Fasting {
     private boolean fastFree; // يوم خالٍ من الصوم
 
     private String shortdesc; // وصف مختصر
-    private String description; // وصف مفصل للصوم إن وُجد
+      private String desc;
   }

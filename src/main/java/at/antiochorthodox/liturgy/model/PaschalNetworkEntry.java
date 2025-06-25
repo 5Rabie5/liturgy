@@ -19,4 +19,6 @@ public class PaschalNetworkEntry {
     private String kathisma;
     private String kontakion;
     private String details;
+    private String lang;
+    private String desc;
 }

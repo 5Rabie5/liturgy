@@ -12,5 +12,7 @@ public class ByzantinePiece {
     private String content;               // نص القطعة (اختياري)
     private Integer tone;                 // رقم اللحن (1-8) أو null
     private String toneName;              // اسم اللحن (الأول، الثاني، ... أو null)
-    private String language;              // لغة النص (ar, gr, en...)
+    private String language;
+    private String lang;
+    private String desc;// لغة النص (ar, gr, en...)
 }

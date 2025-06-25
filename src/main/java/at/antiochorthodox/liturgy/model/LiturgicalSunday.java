@@ -18,4 +18,5 @@ public class LiturgicalSunday {
     private Integer weekAfterPentecost;
     private String note;
     private String lang;
+    private String desc;
 }

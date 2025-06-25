@@ -21,4 +21,6 @@ public class LiturgicalScriptureReadingDay {
     private String note;              // General note
 
     private List<ScriptureReadingOption> options; // List of possible options for readings
+    private String lang;
+    private String desc;
 }

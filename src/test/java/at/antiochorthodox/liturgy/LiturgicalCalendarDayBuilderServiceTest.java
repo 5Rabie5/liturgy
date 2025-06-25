@@ -46,13 +46,13 @@ class LiturgicalCalendarDayBuilderServiceTest {
         ScriptureReading gospel = ScriptureReading.builder()
                 .reference("لوقا 1: 26-38")
                 .content("في ذلك الزمان...")
-                .language("ar")
+                .lang("ar")
                 .build();
 
         ScriptureReading epistle = ScriptureReading.builder()
                 .reference("عبرانيين 2: 11-18")
                 .content("يا إخوة...")
-                .language("ar")
+                .lang("ar")
                 .build();
 
         ScriptureReadingOption option = ScriptureReadingOption.builder()

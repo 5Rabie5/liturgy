@@ -10,5 +10,6 @@ public class ScriptureReading {
 
      private String reference;   // e.g. "Matthew 5:1-12"
     private String content;     // (Optional) The reading text
-    private String language;    // e.g. "ar", "en", "gr"
+    private String lang;
+    private String desc;
 }

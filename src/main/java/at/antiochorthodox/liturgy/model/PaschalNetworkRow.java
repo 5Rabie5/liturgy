@@ -21,5 +21,6 @@ public class PaschalNetworkRow {
     private String kathisma;     // الكاطافاسيات
     private String kontakion;    // الخنداق/الأيوتينة
     private String lang;
+    private String desc;
     // أي أعمدة أخرى من الجدول حسب حاجتك
 }

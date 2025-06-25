@@ -31,4 +31,6 @@ public class LiturgicalPriorityRule {
     private String alternativeExplanation; // شرح في حال وجود أكثر من خيار (أو سبب السماح)
 
     private String notes;                  // أي ملاحظة إضافية أو استثناء أو قرار محلي
+    private String lang;
+    private String desc;
 }

@@ -19,4 +19,6 @@ public class LiturgicalByzantinePieceDay {
     private String dayName;          // اسم اليوم (أحد، عيد...)
     private String season;           // الموسم (فصح، صوم...)
     private List<ByzantinePiece> pieces; // جميع القطع البيزنطية لليوم
+    private String lang;
+    private String desc;
 }

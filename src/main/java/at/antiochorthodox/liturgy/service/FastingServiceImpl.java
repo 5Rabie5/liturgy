@@ -74,7 +74,7 @@ public class FastingServiceImpl implements FastingService {
                         .name(fasting.getName())
                         .type(fasting.getType())
                         .symbol(fasting.getSymbol())
-                        .description(fasting.getDescription())
+                        .desc(fasting.getDesc())
                         .shortdesc(fasting.getShortdesc())
                         .lang(fasting.getLang())
                         .repeatWeekly(fasting.isRepeatWeekly())
