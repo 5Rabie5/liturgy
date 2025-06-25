@@ -24,16 +24,16 @@ public class Saint {
 
     public static class SaintFeastInfo {
         private String date;
-        private String shortdesc;
-        private String desc;
+        private String shortdescription;
+        private String description;
         private String tag;
         private String iconImage;
     }
     private String title;
     private String biographyUrl;
     private String iconUrl;
-    private String shortdesc;
-    private String desc;
+    private String shortdescription;
+    private String description;
     private List<SaintFeastInfo> feasts;
 
     private String lang;

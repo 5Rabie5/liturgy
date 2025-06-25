@@ -1,0 +1,136 @@
+CREATE TABLE [ByzantinePiece] (
+    [pieceType] TEXT,
+    [content] MEMO,
+    [tone] LONG,
+    [toneName] TEXT,
+    [language] TEXT
+);
+
+CREATE TABLE [Fasting] (
+    [id] TEXT,
+    [lang] TEXT,
+    [name] TEXT,
+    [type] TEXT,
+    [startDate] TEXT,
+    [endDate] TEXT,
+    [startOffsetFromPascha] LONG,
+    [endOffsetFromPascha] LONG,
+    [repeatWeekly] YESNO,
+    [fastingLevel] LONG,
+    [symbol] TEXT,
+    [allowed] MEMO,
+    [notAllowed] MEMO,
+    [fastFree] YESNO,
+    [shortdesc] MEMO,
+    [description] MEMO
+);
+
+CREATE TABLE [Feast] (
+    [id] TEXT,
+    [name] TEXT,
+    [lang] TEXT,
+    [type] TEXT,
+    [date] TEXT,
+    [offsetFromPascha] LONG,
+    [group] TEXT,
+    [priority] TEXT,
+    [shortdesc] MEMO,
+    [desc] MEMO,
+    [iconUrl] TEXT
+);
+
+CREATE TABLE [LiturgicalByzantinePieceDay] (
+    [id] TEXT,
+    [date] DATETIME,
+    [dayName] TEXT,
+    [season] TEXT,
+    [pieces] MEMO
+);
+
+CREATE TABLE [LiturgicalCalendarDay] (
+    [date] DATETIME,
+    [dayName] TEXT,
+    [saints] MEMO,
+    [gospelReading] TEXT,
+    [epistleReading] TEXT,
+    [alternativeReadings] MEMO,
+    [fixedFeast] TEXT,
+    [movableFeast] TEXT,
+    [fastingType] TEXT
+);
+
+CREATE TABLE [LiturgicalPriorityRule] (
+    [id] TEXT,
+    [date] TEXT,
+    [priority] TEXT,
+    [override] TEXT,
+    [note] MEMO
+);
+
+CREATE TABLE [LiturgicalScriptureReadingDay] (
+    [id] TEXT,
+    [date] DATETIME,
+    [dayName] TEXT,
+    [season] TEXT,
+    [note] MEMO,
+    [options] MEMO
+);
+
+CREATE TABLE [LiturgicalSunday] (
+    [date] DATETIME,
+    [label] TEXT,
+    [type] TEXT,
+    [weekAfterPentecost] LONG,
+    [note] MEMO,
+    [lang] TEXT
+);
+
+CREATE TABLE [PaschalNetworkEntry] (
+    [id] TEXT,
+    [year] LONG,
+    [rowId] TEXT,
+    [feastId] TEXT,
+    [offsetFromPascha] LONG
+);
+
+CREATE TABLE [PaschalNetworkRow] (
+    [id] TEXT,
+    [entries] MEMO
+);
+
+CREATE TABLE [Saint] (
+    [id] TEXT,
+    [name] TEXT,
+    [title] TEXT,
+    [biographyUrl] TEXT,
+    [iconUrl] TEXT,
+    [shortdesc] MEMO,
+    [desc] MEMO,
+    [lang] TEXT,
+    [feasts] MEMO
+);
+
+CREATE TABLE [SaintFeastInfo] (
+    [saintId] TEXT,
+    [date] TEXT,
+    [shortdesc] MEMO,
+    [desc] MEMO,
+    [tag] TEXT,
+    [iconImage] TEXT
+);
+
+CREATE TABLE [ScriptureReading] (
+    [reference] TEXT,
+    [text] MEMO,
+    [lang] TEXT
+);
+
+CREATE TABLE [ScriptureReadingOption] (
+    [label] TEXT,
+    [reason] TEXT,
+    [preferred] YESNO,
+    [gospel] MEMO,
+    [epistle] MEMO,
+    [alternativeReadings] MEMO
+);
+
