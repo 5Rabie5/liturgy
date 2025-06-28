@@ -71,16 +71,17 @@ public class SaintServiceImpl implements SaintService {
     }
 
     @Override
-    public List<String> findNamesByLangAndDate(String lang, LocalDate date) {
-        String dateString = date.format(DateTimeFormatter.ISO_DATE); // أو حسب تنسيق تواريخك
+       public List<String> findNamesByLangAndDate(String lang, LocalDate date) {
+        String mmdd = String.format("%02d-%02d", date.getMonthValue(), date.getDayOfMonth());
         List<Saint> saints = repository.findByLang(lang);
         return saints.stream()
                 .filter(saint ->
                         saint.getFeasts() != null &&
-                                saint.getFeasts().stream().anyMatch(feast -> dateString.equals(feast.getDate()))
+                                saint.getFeasts().stream().anyMatch(feast -> mmdd.equals(feast.getDate()))
                 )
                 .map(Saint::getName)
                 .toList();
     }
+
 }
 

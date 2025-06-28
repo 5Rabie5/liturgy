@@ -22,6 +22,7 @@ public class LiturgicalCalendarDayBuilderService {
 
     @Autowired
     public LiturgicalCalendarDayBuilderService(
+
             LiturgicalScriptureReadingDayService liturgicalScriptureReadingDayService,
             SaintService saintService,
             FeastService feastService,
@@ -89,7 +90,13 @@ public class LiturgicalCalendarDayBuilderService {
 
         // 4. نوع الصوم أو رمزه (الآن مع lang)
         String fastingType = fastingService.getFastingTypeByLangAndDate(lang, date);
+        System.out.println("Building for date: " + date + ", lang: " + lang);
 
+
+        System.out.println("Saints: " + saints);
+
+
+        System.out.println("Fixed Feast: " + fixedFeast);
         // 5. بناء اليوم الليتورجي
         return LiturgicalCalendarDay.builder()
                 .date(date)
@@ -101,5 +108,8 @@ public class LiturgicalCalendarDayBuilderService {
                 .movableFeast(movableFeast)
                 .fastingType(fastingType)
                 .build();
+
+
     }
+
 }

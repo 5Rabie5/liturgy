@@ -25,7 +25,7 @@ public class LiturgicalCalendarController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(defaultValue = "ar") String lang
     ) {
-        return builderService.buildLiturgicalDay(date, lang);
+              return builderService.buildLiturgicalDay(date, lang);
     }
     @GetMapping("/days")
     public List<LiturgicalCalendarDay> getLiturgicalDays(
@@ -36,7 +36,7 @@ public class LiturgicalCalendarController {
         return start.datesUntil(end.plusDays(1))
                 .map(date -> builderService.buildLiturgicalDay(date, lang))
                 .toList();
-    }
+            }
     @GetMapping("/year")
     public List<LiturgicalCalendarDay> getLiturgicalYear(
             @RequestParam int year,
