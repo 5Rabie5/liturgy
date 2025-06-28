@@ -23,11 +23,11 @@ public class Saint {
     @AllArgsConstructor
 
     public static class SaintFeastInfo {
-        private String date;
+        private String datesaintfeast;
         private String shortdescription;
         private String description;
         private String tag;
-        private String iconImage;
+        private String iconurl;
     }
     private String title;
     private String biographyUrl;
