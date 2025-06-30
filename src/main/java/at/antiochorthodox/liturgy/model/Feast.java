@@ -5,8 +5,6 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDate;
-
 @Document("feasts")
 @Data
 @NoArgsConstructor
@@ -21,7 +19,7 @@ public class Feast {
     private String lang;
 
     private String type; // "fixed" or "paschal"
-    private String date; // for fixed feasts (format: MM-dd)
+    private String feastdate; // for fixed feasts (format: MM-dd)
     private Integer offsetFromPascha; // for paschal feasts (e.g. -7 for Palm Sunday)
 
     private String group;     // مثل: سيدية، شهود، أنبياء

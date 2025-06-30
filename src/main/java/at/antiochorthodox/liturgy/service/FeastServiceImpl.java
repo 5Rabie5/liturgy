@@ -27,8 +27,8 @@ class FeastServiceImpl implements FeastService {
     }
 
     @Override
-    public List<Feast> getByLanguageAndDate(String lang, String date) {
-        return repository.findByLangAndDate(lang, date);
+    public List<Feast> getByLanguageAndDate(String lang, String feastdate) {
+        return repository.findByLangAndFeastdate(lang, feastdate);
     }
 
     @Override
@@ -63,8 +63,8 @@ class FeastServiceImpl implements FeastService {
 
     @Override
     public String findFixedFeastNameByLangAndDate(String lang, LocalDate date) {
-        String dateString = date.format(DateTimeFormatter.ISO_DATE);
-        List<Feast> feasts = repository.findByLangAndDate(lang, dateString);
+        String feastdate = date.format(DateTimeFormatter.ofPattern("MM-dd"));
+        List<Feast> feasts = repository.findByLangAndFeastdate(lang, feastdate);
         return feasts.stream()
                 .filter(f -> "fixed".equalsIgnoreCase(f.getType()))
                 .map(Feast::getName)
@@ -74,8 +74,8 @@ class FeastServiceImpl implements FeastService {
 
     @Override
     public String findMovableFeastNameByLangAndDate(String lang, LocalDate date) {
-        String dateString = date.format(DateTimeFormatter.ISO_DATE);
-        List<Feast> feasts = repository.findByLangAndDate(lang, dateString);
+        String feastdate = date.format(DateTimeFormatter.ofPattern("MM-dd"));
+        List<Feast> feasts = repository.findByLangAndFeastdate(lang, feastdate);
         return feasts.stream()
                 .filter(f -> "paschal".equalsIgnoreCase(f.getType()))
                 .map(Feast::getName)

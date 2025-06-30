@@ -10,7 +10,7 @@ import java.util.List;
 public interface FeastRepository extends MongoRepository<Feast, String> {
 
     List<Feast> findByLang(String lang);
-    List<Feast> findByLangAndDate(String lang, String date);
+    List<Feast> findByLangAndFeastdate(String lang, String feastdate);
     List<Feast> findByLangAndGroup(String lang, String group);
     List<Feast> findByLangAndType(String lang, String type);
     List<Feast> findByLangAndNameContainingIgnoreCase(String lang, String namePart);
