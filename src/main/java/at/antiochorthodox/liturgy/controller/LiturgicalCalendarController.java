@@ -5,7 +5,8 @@ import at.antiochorthodox.liturgy.service.LiturgicalCalendarDayBuilderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
-
+import java.time.DayOfWeek;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -45,6 +46,20 @@ public class LiturgicalCalendarController {
         LocalDate start = LocalDate.of(year, 1, 1);
         LocalDate end = LocalDate.of(year, 12, 31);
         return start.datesUntil(end.plusDays(1))
+                .map(date -> builderService.buildLiturgicalDay(date, lang))
+                .toList();
+    }
+
+
+    @GetMapping("/sundays")
+    public List<LiturgicalCalendarDay> getSundaysOfYear(
+            @RequestParam int year,
+            @RequestParam(defaultValue = "ar") String lang
+    ) {
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = LocalDate.of(year, 12, 31);
+        return start.datesUntil(end.plusDays(1))
+                .filter(date -> date.getDayOfWeek() == DayOfWeek.SUNDAY)
                 .map(date -> builderService.buildLiturgicalDay(date, lang))
                 .toList();
     }
