@@ -11,4 +11,6 @@ public interface FeastRepository extends MongoRepository<Feast, String> {
     List<Feast> findByLangAndGroup(String lang, String group);
     List<Feast> findByLangAndType(String lang, String type);
     List<Feast> findByLangAndNameContainingIgnoreCase(String lang, String namePart);
+
+    List<Feast> findByTypeAndLang(String paschal, String lang);
 }

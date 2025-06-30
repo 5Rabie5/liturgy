@@ -27,4 +27,5 @@ public class Feast {
     private String shortdesc;
     private String desc;
     private String iconUrl;
+    private String calculationRule;
 }

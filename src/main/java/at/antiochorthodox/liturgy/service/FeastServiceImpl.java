@@ -2,6 +2,7 @@ package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.model.Feast;
 import at.antiochorthodox.liturgy.repository.FeastRepository;
+import at.antiochorthodox.liturgy.util.PaschalFeastCalculatorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,7 @@ import java.util.Optional;
 public class FeastServiceImpl implements FeastService {
 
     private final FeastRepository repository;
-
+    private final PaschalFeastCalculatorService calculatorService;
     @Override
     public Optional<Feast> getById(String id) {
         return repository.findById(id);
@@ -74,11 +75,13 @@ public class FeastServiceImpl implements FeastService {
 
     @Override
     public String findMovableFeastNameByLangAndDate(String lang, LocalDate date) {
-        String feastdate = date.format(DateTimeFormatter.ofPattern("MM-dd"));
-        List<Feast> feasts = repository.findByLangAndFeastdate(lang, feastdate);
-        return feasts.stream()
-                .filter(f -> "paschal".equalsIgnoreCase(f.getType()))
-                .map(Feast::getName)
+        int year = date.getYear();
+        List<PaschalFeastCalculatorService.FeastWithDate> feastsWithDates =
+                calculatorService.getPaschalFeastsWithDates(year, lang);
+
+        return feastsWithDates.stream()
+                .filter(f -> f.getDate().equals(date))
+                .map(f -> f.getFeast().getName())
                 .findFirst()
                 .orElse(null);
     }
