@@ -11,12 +11,14 @@ public interface SaintService {
     List<Saint> getByLanguage(String lang);
     List<Saint> getByLanguageAndTitle(String lang, String title);
     List<Saint> getByLanguageAndName(String lang, String namePart);
-    List<Saint> getByLanguageAndFeastDate(String lang, LocalDate date);
-    List<Saint> getByLanguageAndFeastMonth(String lang, int month);
-    List<Saint> getByLanguageAndFeastDay(String lang, int day);
+
+    List<Saint> getByLanguageAndFeastDate(String lang, int month, int day); // جديد: بحث يوم/شهر
+    List<Saint> getByLanguageAndFeastDate(String lang, LocalDate date);     // بديل: بحث بـ LocalDate
+    List<Saint> getByLanguageAndFeastMonth(String lang, int month);         // بحث حسب الشهر
+
     Saint save(Saint saint);
     List<Saint> saveAll(List<Saint> saints);
     void deleteById(String id);
-    List<String> findNamesByLangAndDate(String lang, LocalDate date);
 
+    List<String> findNamesByLangAndDate(String lang, LocalDate date);
 }
