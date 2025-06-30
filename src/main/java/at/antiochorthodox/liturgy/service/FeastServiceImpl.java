@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-class FeastServiceImpl implements FeastService {
+public class FeastServiceImpl implements FeastService {
 
     private final FeastRepository repository;
 
