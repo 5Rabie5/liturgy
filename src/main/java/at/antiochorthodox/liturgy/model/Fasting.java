@@ -27,15 +27,15 @@ public class Fasting {
     private Integer startOffsetFromPascha; // متغير - قبل الفصح أو بعده
     private Integer endOffsetFromPascha;
 
-    private boolean repeatWeekly; // لأربعاء وجمعة
+    private Boolean repeatWeekly; // لأربعاء وجمعة
 
-    private int fastingLevel;  // 1 إلى 5 حسب الرمز
+    private Integer fastingLevel;  // 1 إلى 5 حسب الرمز
     private String symbol;     // الرمز الظاهر في التقويم ✠ أو ● أو ▣ أو لا شيء
 
     private List<String> allowed;
     private List<String> notAllowed;
 
-    private boolean fastFree; // يوم خالٍ من الصوم
+    private Boolean fastFree; // يوم خالٍ من الصوم
 
     private String shortdesc; // وصف مختصر
       private String desc;

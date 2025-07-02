@@ -93,6 +93,6 @@ class LiturgicalCalendarDayBuilderServiceTest {
         assertEquals(Collections.emptyList(), day.getAlternativeReadings());
         assertEquals("عيد البشارة", day.getFixedFeast());
         assertNull(day.getMovableFeast());
-        assertEquals("صوم انقطاعي", day.getFastingType());
+        assertEquals("صوم انقطاعي", day.getFastingLevel());
     }
 }

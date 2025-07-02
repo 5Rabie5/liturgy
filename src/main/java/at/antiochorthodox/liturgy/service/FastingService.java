@@ -17,4 +17,6 @@ public interface FastingService {
     List<Fasting> getAllFastingForYear(String lang, int year);
     Optional<Fasting> getFastingForDate(String lang, LocalDate date);
     String getFastingTypeByLangAndDate(String lang, LocalDate date );
+
+    String getFastingEvelByLangAndDate(String lang, LocalDate date);
 }

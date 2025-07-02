@@ -22,7 +22,7 @@ public class LiturgicalCalendarDay {
     private String fixedFeast;                // العيد الثابت (مثلاً: البشارة)
     private String movableFeast;              // العيد المتغير (مثلاً: الشعانين)
 
-    private String fastingType;               // نوع الصوم أو ملاحظة سريعة (صوم انقطاعي/صوم غير صارم/بدون صوم)
+    private String fastingLevel;               // نوع الصوم أو ملاحظة سريعة (صوم انقطاعي/صوم غير صارم/بدون صوم)
     private String lang;
     private String desc;
 }
