@@ -224,20 +224,51 @@ public class FastingServiceImpl implements FastingService {
             String fastingType,
             Boolean isWeeklyFasting) {
 
-        if (Boolean.TRUE.equals(isWeeklyFasting) && (date.getDayOfWeek().getValue() == 3 || date.getDayOfWeek().getValue() == 5)) {
-            if (isEpiphanyForefeastOrFeast(date)) return 0;
+        // 1. عيد الظهور الإلهي (6 كانون الثاني): لا صوم أبدًا
+        if (date.getMonthValue() == 1 && date.getDayOfMonth() == 6) return 0;
+
+        // 2. تهيئة العيد (5 كانون الثاني)
+        if (date.getMonthValue() == 1 && date.getDayOfMonth() == 5) {
+            // إذا كان يوم أحد أو سبت والدرجة الأولى: يصبح الدرجة الثانية
+            if (fastingLevel != null && fastingLevel == 1 &&
+                    (date.getDayOfWeek().getValue() == 6 || date.getDayOfWeek().getValue() == 7)) {
+                return 2;
+            }
+            // في باقي الأيام: يبقى كما هو
+            return fastingLevel != null ? fastingLevel : 0;
+        }
+
+        // 3. فترة تقدمة العيد (2 إلى 4 كانون الثاني)
+        if (date.getMonthValue() == 1 && date.getDayOfMonth() >= 2 && date.getDayOfMonth() <= 4) {
+            // إذا كان يوم أربعاء أو جمعة: لا صوم في هذا اليوم
+            if (date.getDayOfWeek().getValue() == 3 || date.getDayOfWeek().getValue() == 5) {
+                return 0;
+            }
+        }
+
+        // 4. أعياد كبرى أخرى (مثلاً: البشارة، الشعانين، التجلي) - حسب الحاجة
+        if (isAnnunciation(date) || isPalmSunday(date) || isTransfiguration(date))
+            return 3;
+
+        // 5. صوم الدرجة الأولى في سبت أو أحد: يتحول للثانية (زيت وخمر)
+        if (fastingLevel != null && fastingLevel == 1 &&
+                (date.getDayOfWeek().getValue() == 6 || date.getDayOfWeek().getValue() == 7)) {
+            return 2;
+        }
+
+        // 6. الاستثناءات الأخرى (صوم أسبوعي ... إلخ)
+        if (Boolean.TRUE.equals(isWeeklyFasting) &&
+                (date.getDayOfWeek().getValue() == 3 || date.getDayOfWeek().getValue() == 5)) {
             if (isWeekOfPublicanAndPharisee(date)) return 0;
             if (isAfterPaschaUntilAscension(date)) return 0;
             if (isApodosisOfPascha(date) || isMidPentecost(date)) return 3;
             if ("apostles".equals(fastingType)) return 1;
         }
-        if (fastingLevel != null && fastingLevel == 1 &&
-                (date.getDayOfWeek().getValue() == 6 || date.getDayOfWeek().getValue() == 7)) {
-            return 2;
-        }
-        if (isAnnunciation(date) || isPalmSunday(date) || isTransfiguration(date)) return 3;
+
+        // باقي الأيام: طبق المستوى الافتراضي
         return fastingLevel != null ? fastingLevel : 0;
     }
+
 
     private boolean isEpiphanyForefeastOrFeast(LocalDate date) {
         return (date.getMonthValue() == 1 && (date.getDayOfMonth() == 5 || date.getDayOfMonth() == 6));
