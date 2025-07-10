@@ -1,106 +1,77 @@
 package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
-import at.antiochorthodox.liturgy.model.LiturgicalScriptureReadingDay;
-import at.antiochorthodox.liturgy.model.ScriptureReadingOption;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import at.antiochorthodox.liturgy.model.ScriptureReading;
+import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class LiturgicalCalendarDayBuilderService {
 
-    private final LiturgicalScriptureReadingDayService liturgicalScriptureReadingDayService;
+    private final ScriptureReadingResolverService scriptureReadingResolverService;
     private final SaintService saintService;
     private final FeastService feastService;
     private final FastingService fastingService;
+    private final LiturgicalWeekService liturgicalWeekService;
+    private final PaschaDateCalculator paschaDateCalculator;
 
-    @Autowired
     public LiturgicalCalendarDayBuilderService(
-
-            LiturgicalScriptureReadingDayService liturgicalScriptureReadingDayService,
+            ScriptureReadingResolverService scriptureReadingResolverService,
             SaintService saintService,
             FeastService feastService,
-            FastingService fastingService
+            FastingService fastingService,
+            LiturgicalWeekService liturgicalWeekService,
+            PaschaDateCalculator paschaDateCalculator
     ) {
-        this.liturgicalScriptureReadingDayService = liturgicalScriptureReadingDayService;
+        this.scriptureReadingResolverService = scriptureReadingResolverService;
         this.saintService = saintService;
         this.feastService = feastService;
         this.fastingService = fastingService;
+        this.liturgicalWeekService = liturgicalWeekService;
+        this.paschaDateCalculator = paschaDateCalculator;
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
-        // 1. جلب القراءات لليوم (تأخذ أول خيار مفضل أو أول خيار افتراضي)
-        Optional<LiturgicalScriptureReadingDay> readingsOpt = liturgicalScriptureReadingDayService.findByDate(date);
+        // 1. حساب الاسم الليتورجي
+        LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
+        LocalDate nextPhariseePublican = paschaDateCalculator.getNextPhariseePublicanSunday(pascha);
+        String liturgicalName = liturgicalWeekService.findLiturgicalNameForDate(date, pascha, nextPhariseePublican, lang);
 
-        String gospelReading = null;
-        String epistleReading = null;
-        List<String> alternativeReadings = Collections.emptyList();
+        // 2. جلب القراءات من الخدمة الجديدة (الخالية من الاعتمادية الدائرية)
+        List<ScriptureReading> readings = scriptureReadingResolverService.getAllReadingsForDay(date, lang);
 
-        if (readingsOpt.isPresent() && readingsOpt.get().getOptions() != null && !readingsOpt.get().getOptions().isEmpty()) {
-            List<ScriptureReadingOption> options = readingsOpt.get().getOptions();
-            // ابحث عن preferred أو أول خيار متاح
-            ScriptureReadingOption option = options.stream()
-                    .filter(opt -> Boolean.TRUE.equals(opt.getPreferred()))
-                    .findFirst()
-                    .orElse(options.get(0));
+        String gospelReading = readings.stream()
+                .filter(r -> r.getType().equalsIgnoreCase("gospel"))
+                .map(ScriptureReading::getReference)
+                .findFirst().orElse(null);
 
-            // الإنجيل
-            if (option.getGospel() != null && lang.equals(option.getGospel().getLang())) {
-                gospelReading = option.getGospel().getReference();
-            } else if (option.getGospel() != null) {
-                // إذا لم توجد نسخة بلغة lang، أعطِ أي نسخة متوفرة
-                gospelReading = option.getGospel().getReference();
-            }
+        String epistleReading = readings.stream()
+                .filter(r -> r.getType().equalsIgnoreCase("epistle"))
+                .map(ScriptureReading::getReference)
+                .findFirst().orElse(null);
 
-            // الرسالة
-            if (option.getEpistle() != null && lang.equals(option.getEpistle().getLang())) {
-                epistleReading = option.getEpistle().getReference();
-            } else if (option.getEpistle() != null) {
-                epistleReading = option.getEpistle().getReference();
-            }
+        List<String> alternativeReadings = readings.stream()
+                .filter(r -> !r.getType().equalsIgnoreCase("epistle") && !r.getType().equalsIgnoreCase("gospel"))
+                .map(ScriptureReading::getReference)
+                .toList();
 
-            // القراءات البديلة (كلها أو فقط التي باللغة المطلوبة)
-            alternativeReadings = option.getAlternativeReadings() != null ?
-                    option.getAlternativeReadings().stream()
-                            .filter(reading -> lang.equals(reading.getLang()))
-                            .map(ScriptureReading::getReference)
-                            .toList()
-                    : Collections.emptyList();
-
-            // إذا لم يوجد بدائل بنفس اللغة أعد كل البدائل بغض النظر عن اللغة (احتياطي)
-            if (alternativeReadings.isEmpty() && option.getAlternativeReadings() != null) {
-                alternativeReadings = option.getAlternativeReadings().stream()
-                        .map(ScriptureReading::getReference)
-                        .toList();
-            }
-        }
-
-        // 2. القديسون (الآن مع lang)
+        // 3. القديسون
         List<String> saints = saintService.findNamesByLangAndDate(lang, date);
 
-        // 3. الأعياد (الآن مع lang)
+        // 4. الأعياد
         String fixedFeast = feastService.findFixedFeastNameByLangAndDate(lang, date);
         String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
 
-        // 4. نوع الصوم أو رمزه (الآن مع lang)
-        String fastingType = fastingService.getFastingTypeByLangAndDate(lang, date);
+        // 5. الصوم
         String fastingLevel = fastingService.getFastingEvelByLangAndDate(lang, date);
-//        System.out.println("Building for date: " + date + ", lang: " + lang);
 
-
-//        System.out.println("Saints: " + saints);
-
-
-//        System.out.println("Fixed Feast: " + fixedFeast);
-        // 5. بناء اليوم الليتورجي
+        // 6. بناء كائن اليوم الليتورجي
         return LiturgicalCalendarDay.builder()
                 .date(date)
+                .liturgicalName(liturgicalName)
                 .saints(saints)
                 .gospelReading(gospelReading)
                 .epistleReading(epistleReading)
@@ -108,9 +79,7 @@ public class LiturgicalCalendarDayBuilderService {
                 .fixedFeast(fixedFeast)
                 .movableFeast(movableFeast)
                 .fastingLevel(fastingLevel)
+                .lang(lang)
                 .build();
-
-
     }
-
 }

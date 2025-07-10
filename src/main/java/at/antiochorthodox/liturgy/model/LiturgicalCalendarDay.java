@@ -11,7 +11,7 @@ import java.util.List;
 public class LiturgicalCalendarDay {
     private LocalDate date;                   // التاريخ الميلادي
 
-    private String dayName;                   // اسم الأحد/المناسبة
+    private String liturgicalName;                   // اسم الأحد/المناسبة
 
     private List<String> saints;              // القديسون المعيَّد لهم في هذا اليوم
 

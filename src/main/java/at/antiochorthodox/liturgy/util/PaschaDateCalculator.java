@@ -53,4 +53,8 @@ public class PaschaDateCalculator {
     public  LocalDate getPentecostDate(int year) {
         return getPaschaDate(year).plusDays(49);
     }
+    public LocalDate getNextPhariseePublicanSunday(LocalDate pascha) {
+        // مثال تقريبي: 4 أسابيع قبل الصوم الكبير (قد يختلف حسب التقليد المحلي)
+        return pascha.plusWeeks(40); // مؤقت حتى تضبط الحساب حسب السنة
+    }
 }

@@ -14,5 +14,5 @@ public class ByzantinePiece {
     private String toneName;              // اسم اللحن (الأول، الثاني، ... أو null)
     private String language;
     private String lang;
-    private String desc;// لغة النص (ar, gr, en...)
+    private String desc;
 }

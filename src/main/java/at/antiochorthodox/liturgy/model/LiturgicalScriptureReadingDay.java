@@ -15,12 +15,14 @@ public class LiturgicalScriptureReadingDay {
     @Id
     private String id;
 
-    private LocalDate date;           // Gregorian date
-    private String dayName;           // Name of the day (Sunday, Feast...)
-    private String season;            // Season (Pascha, Lent, etc.)
-    private String note;              // General note
+    private LocalDate date;
+    private String dayName;            // اسم اليوم (مثلاً: أحد القيامة)
+    private String season;            // الموسم الطقسي (الفصح، الصوم، إلخ)
+    private String note;
 
-    private List<ScriptureReadingOption> options; // List of possible options for readings
+    private List<String> epistleLiturgicalNames;  // أسماء ليتورجية للرسائل (مثل "الأحد الثاني بعد العنصرة")
+    private List<String> gospelLiturgicalNames;   // أسماء ليتورجية للأناجيل (مثل "عيد القديس لوقا")
+
     private String lang;
     private String desc;
 }
