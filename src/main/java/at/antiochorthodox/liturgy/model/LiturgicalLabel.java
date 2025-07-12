@@ -1,22 +1,24 @@
 package at.antiochorthodox.liturgy.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document("liturgical_labels")
+@Document(collection = "liturgical_labels")
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class LiturgicalLabel {
     @Id
     private String id;
 
-    private String labelKey;   // مثال: "SUNDAY_OF_THOMAS"
-    private String lang;       // مثال: "ar", "en", "fr"
-    private String text;       // النص المترجم
+    private String labelKey;    // مثل: PASCHA_SUNDAY أو MONDAY_AFTER_PASCHA
+    private String lang;        // "ar", "en", "fr", "de", "nl"
+    private String text;        // النص المعروض
+
+    private String type;        // sunday / weekday
+    private String season;      // pascha / pentecost
+    private Integer weekIndex;  // رقم الأسبوع
+    private String dayOfWeek;   // monday, tuesday ...
 }

@@ -5,6 +5,7 @@ import at.antiochorthodox.liturgy.model.ScriptureReading;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class LiturgicalCalendarDayBuilderService {
     private final SaintService saintService;
     private final FeastService feastService;
     private final FastingService fastingService;
-    private final LiturgicalWeekService liturgicalWeekService;
+    private final LiturgicalLabelService liturgicalLabelService;
     private final PaschaDateCalculator paschaDateCalculator;
 
     public LiturgicalCalendarDayBuilderService(
@@ -23,35 +24,40 @@ public class LiturgicalCalendarDayBuilderService {
             SaintService saintService,
             FeastService feastService,
             FastingService fastingService,
-            LiturgicalWeekService liturgicalWeekService,
+            LiturgicalLabelService liturgicalLabelService,
             PaschaDateCalculator paschaDateCalculator
     ) {
         this.scriptureReadingResolverService = scriptureReadingResolverService;
         this.saintService = saintService;
         this.feastService = feastService;
         this.fastingService = fastingService;
-        this.liturgicalWeekService = liturgicalWeekService;
+        this.liturgicalLabelService = liturgicalLabelService;
         this.paschaDateCalculator = paschaDateCalculator;
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
-        // 1. حساب الاسم الليتورجي
+        // حساب تواريخ الفصح والعنصرة والتريودي
         LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
+        LocalDate previousPascha = paschaDateCalculator.getPaschaDate(date.getYear() - 1);
+        LocalDate pentecost = pascha.plusDays(49);
         LocalDate nextPhariseePublican = paschaDateCalculator.getNextPhariseePublicanSunday(pascha);
-        String liturgicalName = liturgicalWeekService.findLiturgicalNameForDate(date, pascha, nextPhariseePublican, lang);
 
-        // 2. جلب القراءات من الخدمة الجديدة (الخالية من الاعتمادية الدائرية)
+        // 1. اسم اليوم الليتورجي (من قاعدة البيانات)
+        String liturgicalName = liturgicalLabelService.getLabelForDate(date, pascha, nextPhariseePublican, lang);
+
+        // 2. جلب القراءات
         List<ScriptureReading> readings = scriptureReadingResolverService.getAllReadingsForDay(date, lang);
-
         String gospelReading = readings.stream()
                 .filter(r -> r.getType().equalsIgnoreCase("gospel"))
                 .map(ScriptureReading::getReference)
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
 
         String epistleReading = readings.stream()
                 .filter(r -> r.getType().equalsIgnoreCase("epistle"))
                 .map(ScriptureReading::getReference)
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
 
         List<String> alternativeReadings = readings.stream()
                 .filter(r -> !r.getType().equalsIgnoreCase("epistle") && !r.getType().equalsIgnoreCase("gospel"))
@@ -68,7 +74,7 @@ public class LiturgicalCalendarDayBuilderService {
         // 5. الصوم
         String fastingLevel = fastingService.getFastingEvelByLangAndDate(lang, date);
 
-        // 6. بناء كائن اليوم الليتورجي
+        // 6. بناء اليوم
         return LiturgicalCalendarDay.builder()
                 .date(date)
                 .liturgicalName(liturgicalName)
