@@ -43,39 +43,24 @@ public class LiturgicalLabelService {
         labelRepository.deleteById(id);
     }
 
-    /**
-     * جلب التسمية حسب التاريخ الكامل.
-     */
     public String getLabelForDate(LocalDate date, LocalDate pascha, LocalDate nextPhariseePublican, String lang) {
         DayOfWeek day = date.getDayOfWeek();
-        LocalDate pentecostSunday = pascha.plusDays(49); // Pentecost = 50th day
+        LocalDate pentecostSunday = pascha.plusDays(49);
 
-        // --- 1. Special Case: Saturday before Pentecost (Saturday of the Departed) ---
         if (date.equals(pentecostSunday.minusDays(1)) && day == DayOfWeek.SATURDAY) {
-            String label = getLabelForDay("saturday", "pentecost", 0, lang);
-            if (label == null) {
-                System.err.printf("⚠️ No label found for Saturday of the Departed (2025-06-07) in lang='%s'%n", lang);
-            }
-            return label;
+            return getLabelForDay("saturday", "pentecost", 0, lang);
         }
 
-        // --- 2. Special Case: Pentecost Sunday itself ---
         if (date.equals(pentecostSunday) && day == DayOfWeek.SUNDAY) {
-            String label = getLabelForSunday("pentecost", 0, lang); // weekIndex = 0
-            if (label == null) {
-                System.err.printf("⚠️ No label found for Pentecost Sunday (2025-06-08) in lang='%s'%n", lang);
-            }
-            return label;
+            return getLabelForSunday("pentecost", 0, lang);
         }
 
-        // --- 3. Movable Feast? ---
         if (day == DayOfWeek.SUNDAY) {
             String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
             if (movableFeast != null && !movableFeast.isBlank()) {
                 return movableFeast;
             }
 
-            // --- 4. Regular Sunday Logic ---
             String season;
             int weekIndex;
 
@@ -86,25 +71,24 @@ public class LiturgicalLabelService {
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - nextPhariseePublican.toEpochDay()) / 7 + 2;
             } else {
-                // Before Pascha: assume part of previous year's Pentecost season
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - pascha.minusWeeks(40).toEpochDay()) / 7 + 2;
             }
 
-            String label = getLabelForSunday(season, weekIndex, lang);
-            if (label == null) {
-                System.err.printf("⚠️ No Sunday label found for %s week %d (%s)%n", season, weekIndex, date);
-            }
-            return label;
+            return getLabelForSunday(season, weekIndex, lang);
         }
 
-        // --- 5. Weekday Logic ---
         String season;
         int weekIndex;
 
         if (date.isAfter(pascha) && date.isBefore(pentecostSunday)) {
             season = "pascha";
-            weekIndex = countSundaysBetween(pascha.plusDays(1), date);
+            long daysAfterPascha = date.toEpochDay() - pascha.toEpochDay();
+            if (daysAfterPascha <= 6) {
+                weekIndex = 0; // Renewal week
+            } else {
+                weekIndex = (int) (daysAfterPascha / 7);
+            }
         } else if (!date.isBefore(pentecostSunday)) {
             season = "pentecost";
             weekIndex = countSundaysBetween(pentecostSunday.plusDays(1), date);
@@ -113,11 +97,7 @@ public class LiturgicalLabelService {
             weekIndex = countSundaysBetween(pascha.minusWeeks(40), date);
         }
 
-        String label = getLabelForDay(day.name().toLowerCase(), season, weekIndex + 1, lang);
-        if (label == null) {
-            System.err.printf("⚠️ No weekday label found for %s week %d (%s)%n", season, weekIndex + 1, date);
-        }
-        return label;
+        return getLabelForDay(day.name().toLowerCase(), season, weekIndex, lang);
     }
 
     private int countSundaysBetween(LocalDate start, LocalDate end) {
