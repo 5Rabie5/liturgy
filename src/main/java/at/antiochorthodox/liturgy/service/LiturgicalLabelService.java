@@ -47,14 +47,35 @@ public class LiturgicalLabelService {
      * جلب التسمية حسب التاريخ الكامل.
      */
     public String getLabelForDate(LocalDate date, LocalDate pascha, LocalDate nextPhariseePublican, String lang) {
-        if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            // أولاً: افحص إذا كان هناك عيد متنقل خاص بهذا الأحد (مثل أحد الفريسي والعشار، أحد الصوم...)
+        DayOfWeek day = date.getDayOfWeek();
+        LocalDate pentecostSunday = pascha.plusDays(49); // Pentecost = 50th day
+
+        // --- 1. Special Case: Saturday before Pentecost (Saturday of the Departed) ---
+        if (date.equals(pentecostSunday.minusDays(1)) && day == DayOfWeek.SATURDAY) {
+            String label = getLabelForDay("saturday", "pentecost", 0, lang);
+            if (label == null) {
+                System.err.printf("⚠️ No label found for Saturday of the Departed (2025-06-07) in lang='%s'%n", lang);
+            }
+            return label;
+        }
+
+        // --- 2. Special Case: Pentecost Sunday itself ---
+        if (date.equals(pentecostSunday) && day == DayOfWeek.SUNDAY) {
+            String label = getLabelForSunday("pentecost", 0, lang); // weekIndex = 0
+            if (label == null) {
+                System.err.printf("⚠️ No label found for Pentecost Sunday (2025-06-08) in lang='%s'%n", lang);
+            }
+            return label;
+        }
+
+        // --- 3. Movable Feast? ---
+        if (day == DayOfWeek.SUNDAY) {
             String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
             if (movableFeast != null && !movableFeast.isBlank()) {
                 return movableFeast;
             }
 
-            // أحد عادي بعد الفصح أو بعد العنصرة
+            // --- 4. Regular Sunday Logic ---
             String season;
             int weekIndex;
 
@@ -65,31 +86,38 @@ public class LiturgicalLabelService {
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - nextPhariseePublican.toEpochDay()) / 7 + 2;
             } else {
-                // افتراض أن كل أحد قبل الفصح هو أحد بعد العنصرة من السنة السابقة
+                // Before Pascha: assume part of previous year's Pentecost season
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - pascha.minusWeeks(40).toEpochDay()) / 7 + 2;
             }
 
-            return getLabelForSunday(season, weekIndex, lang);
-        } else {
-            // أيام الأسبوع غير الأحد
-            String season;
-            int weekIndex;
-            LocalDate pentecost = pascha.plusDays(49);
-
-            if (date.isAfter(pascha) && date.isBefore(pentecost)) {
-                season = "pascha";
-                weekIndex = countSundaysBetween(pascha.plusDays(1), date);
-            } else if (!date.isBefore(pentecost)) {
-                season = "pentecost";
-                weekIndex = countSundaysBetween(pentecost.plusDays(1), date);
-            } else {
-                season = "pentecost";
-                weekIndex = countSundaysBetween(pascha.minusWeeks(40), date);
+            String label = getLabelForSunday(season, weekIndex, lang);
+            if (label == null) {
+                System.err.printf("⚠️ No Sunday label found for %s week %d (%s)%n", season, weekIndex, date);
             }
-
-            return getLabelForDay(date.getDayOfWeek().name().toLowerCase(), season, weekIndex + 1, lang);
+            return label;
         }
+
+        // --- 5. Weekday Logic ---
+        String season;
+        int weekIndex;
+
+        if (date.isAfter(pascha) && date.isBefore(pentecostSunday)) {
+            season = "pascha";
+            weekIndex = countSundaysBetween(pascha.plusDays(1), date);
+        } else if (!date.isBefore(pentecostSunday)) {
+            season = "pentecost";
+            weekIndex = countSundaysBetween(pentecostSunday.plusDays(1), date);
+        } else {
+            season = "pentecost";
+            weekIndex = countSundaysBetween(pascha.minusWeeks(40), date);
+        }
+
+        String label = getLabelForDay(day.name().toLowerCase(), season, weekIndex + 1, lang);
+        if (label == null) {
+            System.err.printf("⚠️ No weekday label found for %s week %d (%s)%n", season, weekIndex + 1, date);
+        }
+        return label;
     }
 
     private int countSundaysBetween(LocalDate start, LocalDate end) {
