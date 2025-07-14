@@ -13,9 +13,14 @@ import java.util.Optional;
 public class LiturgicalLabelService {
 
     private final LiturgicalLabelRepository labelRepository;
+    private final FeastService feastService;
 
-    public LiturgicalLabelService(LiturgicalLabelRepository labelRepository) {
+    public LiturgicalLabelService(
+            LiturgicalLabelRepository labelRepository,
+            FeastService feastService
+    ) {
         this.labelRepository = labelRepository;
+        this.feastService = feastService;
     }
 
     public List<LiturgicalLabel> getAllLabels() {
@@ -43,7 +48,13 @@ public class LiturgicalLabelService {
      */
     public String getLabelForDate(LocalDate date, LocalDate pascha, LocalDate nextPhariseePublican, String lang) {
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            // أحد بعد الفصح أو بعد العنصرة
+            // أولاً: افحص إذا كان هناك عيد متنقل خاص بهذا الأحد (مثل أحد الفريسي والعشار، أحد الصوم...)
+            String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
+            if (movableFeast != null && !movableFeast.isBlank()) {
+                return movableFeast;
+            }
+
+            // أحد عادي بعد الفصح أو بعد العنصرة
             String season;
             int weekIndex;
 
@@ -54,17 +65,16 @@ public class LiturgicalLabelService {
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - nextPhariseePublican.toEpochDay()) / 7 + 2;
             } else {
-                // افتراض أن كل أحد قبل الفصح بوقت طويل هو بعد العنصرة من السنة السابقة
+                // افتراض أن كل أحد قبل الفصح هو أحد بعد العنصرة من السنة السابقة
                 season = "pentecost";
                 weekIndex = (int) (date.toEpochDay() - pascha.minusWeeks(40).toEpochDay()) / 7 + 2;
             }
 
             return getLabelForSunday(season, weekIndex, lang);
         } else {
-            // يوم عادي
+            // أيام الأسبوع غير الأحد
             String season;
             int weekIndex;
-            LocalDate current = pascha;
             LocalDate pentecost = pascha.plusDays(49);
 
             if (date.isAfter(pascha) && date.isBefore(pentecost)) {
