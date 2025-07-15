@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,84 +44,98 @@ public class LiturgicalLabelService {
         labelRepository.deleteById(id);
     }
 
-    public String getLabelForDate(LocalDate date, LocalDate pascha, LocalDate nextPhariseePublican, String lang) {
+    public String getLabelForDate(LocalDate date, LocalDate pascha, String lang) {
         DayOfWeek day = date.getDayOfWeek();
         LocalDate pentecostSunday = pascha.plusDays(49);
+        LocalDate triodionStart = pascha.minusWeeks(10); // أحد الفريسي والعشار
 
+        System.out.printf("📅 Checking date: %s | DayOfWeek: %s%n", date, day);
+        System.out.printf("🕊️ Pascha: %s | Pentecost Sunday: %s | Triodion Start: %s%n", pascha, pentecostSunday, triodionStart);
+
+        // 1. السبت قبل العنصرة
         if (date.equals(pentecostSunday.minusDays(1)) && day == DayOfWeek.SATURDAY) {
             return getLabelForDay("saturday", "pentecost", 0, lang);
         }
 
+        // 2. أحد العنصرة
         if (date.equals(pentecostSunday) && day == DayOfWeek.SUNDAY) {
             return getLabelForSunday("pentecost", 0, lang);
         }
 
+        // 3. التريودي
+        if (!date.isBefore(triodionStart) && date.isBefore(pascha)) {
+            String season = "triodion";
+            int weekIndex = (int) ChronoUnit.WEEKS.between(triodionStart, date);
+
+            if (day == DayOfWeek.SUNDAY) {
+                System.out.printf("📘 Triodion Sunday: weekIndex=%d%n", weekIndex);
+                return getLabelForSunday(season, weekIndex, lang);
+            } else {
+                System.out.printf("📘 Triodion Weekday: weekIndex=%d%n", weekIndex);
+                return getLabelForDay(day.name().toLowerCase(), season, weekIndex, lang);
+            }
+        }
+
+        // 4. الأحـاد الأخرى (خارج التريودي)
         if (day == DayOfWeek.SUNDAY) {
             String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
             if (movableFeast != null && !movableFeast.isBlank()) {
+                System.out.printf("📦 Movable Feast: %s%n", movableFeast);
                 return movableFeast;
             }
 
             String season;
             int weekIndex;
 
-            if (!date.isBefore(pascha) && date.isBefore(nextPhariseePublican)) {
+            if (!date.isBefore(pascha) && date.isBefore(pentecostSunday)) {
                 season = "pascha";
-                weekIndex = (int) (date.toEpochDay() - pascha.toEpochDay()) / 7;
-            } else if (!date.isBefore(nextPhariseePublican)) {
+                weekIndex = (int) ChronoUnit.WEEKS.between(pascha, date);
+            } else if (!date.isBefore(pentecostSunday)) {
                 season = "pentecost";
-                weekIndex = (int) (date.toEpochDay() - nextPhariseePublican.toEpochDay()) / 7 + 2;
+                weekIndex = (int) ChronoUnit.WEEKS.between(pentecostSunday.plusDays(1), date);
             } else {
                 season = "pentecost";
-                weekIndex = (int) (date.toEpochDay() - pascha.minusWeeks(40).toEpochDay()) / 7 + 2;
+                weekIndex = (int) ChronoUnit.WEEKS.between(pascha.minusWeeks(40), date);
             }
 
-            return getLabelForSunday(season, weekIndex, lang);
+            System.out.printf("📕 Sunday: season=%s, weekIndex=%d%n", season, weekIndex);
+            String label = getLabelForSunday(season, weekIndex, lang);
+            System.out.printf("🔎 Sunday label: %s%n", label);
+            return label;
         }
 
+        // 5. باقي الأيام
         String season;
         int weekIndex;
 
         if (date.isAfter(pascha) && date.isBefore(pentecostSunday)) {
             season = "pascha";
-            long daysAfterPascha = date.toEpochDay() - pascha.toEpochDay();
+            long daysAfterPascha = ChronoUnit.DAYS.between(pascha, date);
             if (daysAfterPascha <= 6) {
-                weekIndex = 0; // Renewal week
+                weekIndex = 0; // أسبوع التجديدات
             } else {
                 weekIndex = (int) (daysAfterPascha / 7);
             }
         } else if (!date.isBefore(pentecostSunday)) {
             season = "pentecost";
-            weekIndex = countSundaysBetween(pentecostSunday.plusDays(1), date);
+            weekIndex = (int) ChronoUnit.WEEKS.between(pentecostSunday.plusDays(1), date);
         } else {
             season = "pentecost";
-            weekIndex = countSundaysBetween(pascha.minusWeeks(40), date);
+            weekIndex = (int) ChronoUnit.WEEKS.between(pascha.minusWeeks(40), date);
         }
 
         return getLabelForDay(day.name().toLowerCase(), season, weekIndex, lang);
     }
 
-    private int countSundaysBetween(LocalDate start, LocalDate end) {
-        int count = 0;
-        LocalDate current = start;
-        while (!current.isAfter(end)) {
-            if (current.getDayOfWeek() == DayOfWeek.SUNDAY) count++;
-            current = current.plusDays(1);
-        }
-        return count;
-    }
-
     public String getLabelForDay(String dayOfWeek, String season, int weekIndex, String lang) {
         Optional<LiturgicalLabel> labelOpt = labelRepository
                 .findByTypeAndSeasonAndWeekIndexAndDayOfWeekAndLang("weekday", season, weekIndex, dayOfWeek.toLowerCase(), lang);
-
         return labelOpt.map(LiturgicalLabel::getText).orElse(null);
     }
 
     public String getLabelForSunday(String season, int weekIndex, String lang) {
         Optional<LiturgicalLabel> labelOpt = labelRepository
                 .findByTypeAndSeasonAndWeekIndexAndDayOfWeekIsNullAndLang("sunday", season, weekIndex, lang);
-
         return labelOpt.map(LiturgicalLabel::getText).orElse(null);
     }
 }

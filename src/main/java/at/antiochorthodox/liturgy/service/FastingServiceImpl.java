@@ -97,7 +97,7 @@ public class FastingServiceImpl implements FastingService {
                     start = parseMMDD(fasting.getStartDate(), year);
                     end = parseMMDD(fasting.getEndDate(), year);
                 } catch (Exception e) {
-                    System.err.println("تاريخ غير صالح في الصوم: " + fasting.getName() + " :: " + e.getMessage());
+//                    System.err.println("تاريخ غير صالح في الصوم: " + fasting.getName() + " :: " + e.getMessage());
                     continue;
                 }
                 Fasting adjusted = Fasting.builder()

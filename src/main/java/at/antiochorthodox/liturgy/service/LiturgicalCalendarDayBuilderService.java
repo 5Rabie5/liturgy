@@ -43,7 +43,7 @@ public class LiturgicalCalendarDayBuilderService {
         LocalDate nextPhariseePublican = paschaDateCalculator.getNextPhariseePublicanSunday(pascha);
 
         // 1. اسم اليوم الليتورجي (من قاعدة البيانات)
-        String liturgicalName = liturgicalLabelService.getLabelForDate(date, pascha, nextPhariseePublican, lang);
+        String liturgicalName = liturgicalLabelService.getLabelForDate(date, pascha, lang);
 
         // 2. جلب القراءات
         List<ScriptureReading> readings = scriptureReadingResolverService.getAllReadingsForDay(date, lang);

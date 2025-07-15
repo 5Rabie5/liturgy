@@ -62,6 +62,6 @@ public class LiturgicalLabelController {
         LocalDate localDate = LocalDate.parse(date);
         LocalDate pascha = paschaDateCalculator.getPaschaDate(localDate.getYear());
         LocalDate nextPharisee = paschaDateCalculator.getNextPhariseePublicanSunday(pascha);
-        return liturgicalLabelService.getLabelForDate(localDate, pascha, nextPharisee, lang);
+        return liturgicalLabelService.getLabelForDate(localDate, pascha, lang);
     }
 }
