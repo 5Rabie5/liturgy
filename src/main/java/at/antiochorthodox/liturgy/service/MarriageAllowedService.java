@@ -1,53 +1,77 @@
 package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.dto.MarriageAllowedResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import at.antiochorthodox.liturgy.model.MarriageBanReason;
+import at.antiochorthodox.liturgy.repository.MarriageBanReasonRepository;
+import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.Map;
 
 @Service
 public class MarriageAllowedService {
 
-    private final LiturgicalCalendarService calendarService;
+    private final MarriageBanReasonRepository banReasonRepository;
+    private final PaschaDateCalculator paschaCalculator;
 
-    @Autowired
-    public MarriageAllowedService(LiturgicalCalendarService calendarService) {
-        this.calendarService = calendarService;
+    public MarriageAllowedService(
+            MarriageBanReasonRepository banReasonRepository,
+            PaschaDateCalculator paschaCalculator
+    ) {
+        this.banReasonRepository = banReasonRepository;
+        this.paschaCalculator = paschaCalculator;
     }
 
-    public MarriageAllowedResponse isMarriageAllowed(LocalDate date) {
-        // 1. اليوم السابق للظهور الإلهي
+    public MarriageAllowedResponse isMarriageAllowed(LocalDate date, String lang) {
+        int year = date.getYear();
+        LocalDate pascha = paschaCalculator.getPaschaDate(year);
+
+        // 1. اليوم السابق للظهور الإلهي - 5 كانون الثاني
         if (date.getMonth() == Month.JANUARY && date.getDayOfMonth() == 5)
-            return new MarriageAllowedResponse(date, false, "اليوم السابق لعيد الظهور الإلهي (لا يسمح بالزواج)");
+            return new MarriageAllowedResponse(date, false, getMessage("BEFORE_EPIPHANY", lang));
 
-        // 2. الصوم الكبير
-        if (calendarService.isGreatLent(date))
-            return new MarriageAllowedResponse(date, false, "الصوم الكبير (لا يسمح بالزواج)");
+        // 2. من أربعاء الجبن إلى سبت التجديدات
+        LocalDate cheeseSunday = pascha.minusWeeks(8); // أحد مرفع الجبن
+        LocalDate cheeseWednesday = cheeseSunday.with(DayOfWeek.WEDNESDAY);
+        LocalDate saturdayBeforeThomas = pascha.plusDays(6); // سبت التجديدات
 
-        // 3. صوم السيدة العذراء
-        if (calendarService.isDormitionFast(date))
-            return new MarriageAllowedResponse(date, false, "صوم السيدة العذراء (لا يسمح بالزواج)");
+        if (!date.isBefore(cheeseWednesday) && !date.isAfter(saturdayBeforeThomas))
+            return new MarriageAllowedResponse(date, false, getMessage("CHEESE_TO_RENEWAL", lang));
 
-        // 4. تذكار قطع رأس يوحنا المعمدان
+        // 3. أحد العنصرة
+        if (date.equals(paschaCalculator.getPentecostDate(year)))
+            return new MarriageAllowedResponse(date, false, getMessage("PENTECOST_SUNDAY", lang));
+
+        // 4. صوم السيدة العذراء (1 - 15 آب)
+        if (date.getMonth() == Month.AUGUST && date.getDayOfMonth() >= 1 && date.getDayOfMonth() <= 15)
+            return new MarriageAllowedResponse(date, false, getMessage("DORMITION_FAST", lang));
+
+        // 5. قطع رأس يوحنا المعمدان - 29 آب
         if (date.getMonth() == Month.AUGUST && date.getDayOfMonth() == 29)
-            return new MarriageAllowedResponse(date, false, "تذكار قطع رأس يوحنا المعمدان (لا يسمح بالزواج)");
+            return new MarriageAllowedResponse(date, false, getMessage("JOHN_BEHEADING", lang));
 
-        // 5. تذكار رفع الصليب الكريم
+        // 6. رفع الصليب الكريم - 14 أيلول
         if (date.getMonth() == Month.SEPTEMBER && date.getDayOfMonth() == 14)
-            return new MarriageAllowedResponse(date, false, "تذكار رفع الصليب الكريم (لا يسمح بالزواج)");
+            return new MarriageAllowedResponse(date, false, getMessage("HOLY_CROSS", lang));
 
-        // 6. صوم الميلاد
-        if (calendarService.isNativityFast(date))
-            return new MarriageAllowedResponse(date, false, "صوم الميلاد (لا يسمح بالزواج)");
+        // 7. صوم الميلاد - 20 إلى 25 كانون الأول
+        if (date.getMonth() == Month.DECEMBER && date.getDayOfMonth() >= 20 && date.getDayOfMonth() <= 25)
+            return new MarriageAllowedResponse(date, false, getMessage("NATIVITY_FAST", lang));
 
-        // 7. أحد العنصرة
-        if (calendarService.isPentecostSunday(date))
-            return new MarriageAllowedResponse(date, false, "أحد العنصرة (لا يسمح بالزواج)");
-
-        // إذا لم يتحقق أي شرط
-        return new MarriageAllowedResponse(date, true, "مسموح بالزواج في هذا اليوم");
+        // إذا لم ينطبق أي سبب
+        return new MarriageAllowedResponse(date, true, getMessage("ALLOWED", lang));
     }
+
+    private String getMessage(String code, String lang) {
+        return banReasonRepository.findByCode(code)
+                .map((MarriageBanReason reason) -> {
+                    Map<String, String> msgMap = reason.getMessage();
+                    return msgMap.getOrDefault(lang, msgMap.getOrDefault("en", "Marriage restriction: " + code));
+                })
+                .orElse("Marriage restriction: " + code);
+    }
+
 }

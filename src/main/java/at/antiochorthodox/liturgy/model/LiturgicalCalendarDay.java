@@ -25,4 +25,6 @@ public class LiturgicalCalendarDay {
     private String fastingLevel;               // نوع الصوم أو ملاحظة سريعة (صوم انقطاعي/صوم غير صارم/بدون صوم)
     private String lang;
     private String desc;
+    private Boolean marriageAllowed; // جديد
+    private String marriageNote;     // جديد
 }
