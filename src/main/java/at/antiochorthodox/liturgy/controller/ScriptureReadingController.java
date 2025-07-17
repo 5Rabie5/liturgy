@@ -1,6 +1,8 @@
 package at.antiochorthodox.liturgy.controller;
 
 import at.antiochorthodox.liturgy.model.ScriptureReading;
+import at.antiochorthodox.liturgy.model.ScriptureReadingOption;
+import at.antiochorthodox.liturgy.service.ScriptureReadingResolverService;
 import at.antiochorthodox.liturgy.service.ScriptureReadingService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +16,14 @@ import java.util.List;
 public class ScriptureReadingController {
 
     private final ScriptureReadingService scriptureReadingService;
+    private final ScriptureReadingResolverService scriptureReadingResolverService;
 
-    public ScriptureReadingController(ScriptureReadingService scriptureReadingService) {
+    public ScriptureReadingController(
+            ScriptureReadingService scriptureReadingService,
+            ScriptureReadingResolverService scriptureReadingResolverService
+    ) {
         this.scriptureReadingService = scriptureReadingService;
+        this.scriptureReadingResolverService = scriptureReadingResolverService;
     }
 
     @GetMapping("/by-date-and-type")
@@ -29,5 +36,34 @@ public class ScriptureReadingController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(readings);
+    }
+
+    @GetMapping("/grouped")
+    public ResponseEntity<List<ScriptureReadingOption>> getGroupedScriptureReadings(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "ar") String lang) {
+        List<ScriptureReadingOption> options = scriptureReadingResolverService.getAllReadingOptionsForDay(date, lang);
+        if (options.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(options);
+    }
+
+    // لحفظ قراءة واحدة
+    @PostMapping
+    public ResponseEntity<ScriptureReading> saveScriptureReading(
+            @RequestBody ScriptureReading reading
+    ) {
+        ScriptureReading saved = scriptureReadingService.saveReading(reading);
+        return ResponseEntity.ok(saved);
+    }
+
+    // لحفظ مجموعة من القراءات دفعة واحدة
+    @PostMapping("/batch")
+    public ResponseEntity<List<ScriptureReading>> saveScriptureReadingsBatch(
+            @RequestBody List<ScriptureReading> readings
+    ) {
+        List<ScriptureReading> saved = scriptureReadingService.saveReadings(readings);
+        return ResponseEntity.ok(saved);
     }
 }

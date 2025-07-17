@@ -5,9 +5,7 @@ import at.antiochorthodox.liturgy.model.GospelReading;
 import at.antiochorthodox.liturgy.model.ScriptureReading;
 import at.antiochorthodox.liturgy.repository.EpistleReadingRepository;
 import at.antiochorthodox.liturgy.repository.GospelReadingRepository;
-import at.antiochorthodox.liturgy.service.LiturgicalWeekService;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
-import at.antiochorthodox.liturgy.service.ScriptureReadingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -44,14 +42,13 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                 paschaDateCalculator.getNextPhariseePublicanSunday(paschaDateCalculator.getPaschaDate(date.getYear())),
                 lang
         );
-
-        return getReadingsByLiturgicalName(liturgicalName, lang).stream()
+        return getReadingsByLiturgicalName(liturgicalName, lang, "liturgicalName", liturgicalName).stream()
                 .filter(r -> r.getType().equalsIgnoreCase(type))
                 .toList();
     }
 
     @Override
-    public List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String lang) {
+    public List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String lang, String reason, String reasonDetail) {
         List<ScriptureReading> result = new ArrayList<>();
 
         List<EpistleReading> epistles = epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang);
@@ -68,6 +65,8 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                     .prokeimenon(e.getProkeimenon())
                     .tone(e.getTone())
                     .stikheron(e.getStikheron())
+                    .reason(reason)
+                    .reasonDetail(reasonDetail)
                     .build());
         }
 
@@ -82,6 +81,8 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                     .liturgicalName(g.getLiturgicalName())
                     .lang(g.getLang())
                     .desc(g.getDesc())
+                    .reason(reason)
+                    .reasonDetail(reasonDetail)
                     .build());
         }
 
@@ -89,14 +90,46 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
     }
 
     @Override
-    public List<ScriptureReading> getAllReadingsForDay(LocalDate date, String lang) {
-        String liturgicalName = liturgicalWeekService.findLiturgicalNameForDate(
-                date,
-                paschaDateCalculator.getPaschaDate(date.getYear()),
-                paschaDateCalculator.getNextPhariseePublicanSunday(paschaDateCalculator.getPaschaDate(date.getYear())),
-                lang
-        );
+    public ScriptureReading saveReading(ScriptureReading reading) {
+        if ("epistle".equalsIgnoreCase(reading.getType())) {
+            EpistleReading entity = EpistleReading.builder()
+                    .title(reading.getTitle())
+                    .reference(reading.getReference())
+                    .content(reading.getContent())
+                    .liturgicalName(reading.getLiturgicalName())
+                    .lang(reading.getLang())
+                    .desc(reading.getDesc())
+                    .prokeimenon(reading.getProkeimenon())
+                    .tone(reading.getTone())
+                    .stikheron(reading.getStikheron())
+                    .build();
+            EpistleReading saved = epistleRepo.save(entity);
+            reading.setSourceId(saved.getId());
+            return reading;
+        } else if ("gospel".equalsIgnoreCase(reading.getType())) {
+            GospelReading entity = GospelReading.builder()
+                    .title(reading.getTitle())
+                    .reference(reading.getReference())
+                    .content(reading.getContent())
+                    .liturgicalName(reading.getLiturgicalName())
+                    .lang(reading.getLang())
+                    .desc(reading.getDesc())
+                    .build();
+            GospelReading saved = gospelRepo.save(entity);
+            reading.setSourceId(saved.getId());
+            return reading;
+        } else {
+            throw new IllegalArgumentException("Unsupported reading type: " + reading.getType());
+        }
+    }
 
-        return getReadingsByLiturgicalName(liturgicalName, lang);
+    @Override
+    public List<ScriptureReading> saveReadings(List<ScriptureReading> readings) {
+        List<ScriptureReading> saved = new ArrayList<>();
+        for (ScriptureReading reading : readings) {
+            saved.add(saveReading(reading));
+        }
+        return saved;
     }
 }
+
