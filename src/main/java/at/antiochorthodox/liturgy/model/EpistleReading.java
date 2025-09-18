@@ -1,9 +1,6 @@
 package at.antiochorthodox.liturgy.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -16,15 +13,36 @@ public class EpistleReading {
     @Id
     private String id;
 
-    private String title;           // مثل: "فصل من أعمال الرسل القديسين"
-    private String reference;       // مثل: "أعمال 5:12"
-    private String content;         // نص الرسالة
-
-    private String prokeimenon;     // نص البروكيمونون
-    private String tone;            // اللحن (اللحن الثالث، الرابع...)
-    private String stikheron;       // الاستيخون
-
-    private String liturgicalName;  // 🔁 الاسم الليتورجي مثل: "الأحد الثالث بعد الفصح"
+    private String title;
+    private String reference;
+    private String type;                // دائما "epistle"
+    private String liturgicalName;
     private String lang;
     private String desc;
+
+    // --- القطع الطقسية الرسالية ---
+    private String prokeimenon1Title;
+    private String prokeimenon1Tone;
+    private String prokeimenon1Verse;
+    private String prokeimenon1Stikheron;
+
+    private String prokeimenon2Title;
+    private String prokeimenon2Tone;
+    private String prokeimenon2Verse;
+    private String prokeimenon2Stikheron;
+
+    // نص الرسالة
+    private String readingTitle;
+    private String readingContent;
+
+    // --- هللويا (عادة للرسالة فقط) ---
+    private String alleluiaTitle;
+    private String alleluiaTone;
+    private String alleluiaVerse;
+    private String alleluiaStikheron;
+
+    // --- legacy (اختياري، للحفاظ على بيانات قديمة فقط) ---
+    private String prokeimenon;
+    private String tone;
+    private String stikheron;
 }

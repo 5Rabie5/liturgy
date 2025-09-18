@@ -51,36 +51,58 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
     public List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String lang, String reason, String reasonDetail) {
         List<ScriptureReading> result = new ArrayList<>();
 
+        // Epistle readings
         List<EpistleReading> epistles = epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang);
         for (EpistleReading e : epistles) {
             result.add(ScriptureReading.builder()
                     .title(e.getTitle())
                     .reference(e.getReference())
-                    .content(e.getContent())
                     .type("epistle")
                     .sourceId(e.getId())
                     .liturgicalName(e.getLiturgicalName())
                     .lang(e.getLang())
                     .desc(e.getDesc())
-                    .prokeimenon(e.getProkeimenon())
-                    .tone(e.getTone())
-                    .stikheron(e.getStikheron())
+                    // --- الحقول الرسالية ---
+                    .prokeimenon1Title(e.getProkeimenon1Title())
+                    .prokeimenon1Tone(e.getProkeimenon1Tone())
+                    .prokeimenon1Verse(e.getProkeimenon1Verse())
+                    .prokeimenon1Stikheron(e.getProkeimenon1Stikheron())
+                    .prokeimenon2Title(e.getProkeimenon2Title())
+                    .prokeimenon2Tone(e.getProkeimenon2Tone())
+                    .prokeimenon2Verse(e.getProkeimenon2Verse())
+                    .prokeimenon2Stikheron(e.getProkeimenon2Stikheron())
+                    .readingTitle(e.getReadingTitle())
+                    .readingContent(e.getReadingContent())
+                    .alleluiaTitle(e.getAlleluiaTitle())
+                    .alleluiaTone(e.getAlleluiaTone())
+                    .alleluiaVerse(e.getAlleluiaVerse())
+                    .alleluiaStikheron(e.getAlleluiaStikheron())
                     .reason(reason)
                     .reasonDetail(reasonDetail)
                     .build());
         }
 
+        // Gospel readings
         List<GospelReading> gospels = gospelRepo.findByLiturgicalNameAndLang(liturgicalName, lang);
         for (GospelReading g : gospels) {
             result.add(ScriptureReading.builder()
                     .title(g.getTitle())
                     .reference(g.getReference())
-                    .content(g.getContent())
                     .type("gospel")
                     .sourceId(g.getId())
                     .liturgicalName(g.getLiturgicalName())
                     .lang(g.getLang())
                     .desc(g.getDesc())
+                    // --- الإنجيل فقط ---
+                    .readingTitle(g.getReadingTitle())
+                    .readingContent(g.getReadingContent())
+                    .prokeimenonTitle(g.getProkeimenonTitle())
+                    .prokeimenonTone(g.getProkeimenonTone())
+                    .prokeimenonVerse(g.getProkeimenonVerse())
+                    .alleluiaTitle(g.getAlleluiaTitle())
+                    .alleluiaTone(g.getAlleluiaTone())
+                    .alleluiaVerse(g.getAlleluiaVerse())
+                    .alleluiaStikheron(g.getAlleluiaStikheron())
                     .reason(reason)
                     .reasonDetail(reasonDetail)
                     .build());
@@ -95,13 +117,25 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             EpistleReading entity = EpistleReading.builder()
                     .title(reading.getTitle())
                     .reference(reading.getReference())
-                    .content(reading.getContent())
+                    .type("epistle")
                     .liturgicalName(reading.getLiturgicalName())
                     .lang(reading.getLang())
                     .desc(reading.getDesc())
-                    .prokeimenon(reading.getProkeimenon())
-                    .tone(reading.getTone())
-                    .stikheron(reading.getStikheron())
+                    // --- الحقول الرسالية ---
+                    .prokeimenon1Title(reading.getProkeimenon1Title())
+                    .prokeimenon1Tone(reading.getProkeimenon1Tone())
+                    .prokeimenon1Verse(reading.getProkeimenon1Verse())
+                    .prokeimenon1Stikheron(reading.getProkeimenon1Stikheron())
+                    .prokeimenon2Title(reading.getProkeimenon2Title())
+                    .prokeimenon2Tone(reading.getProkeimenon2Tone())
+                    .prokeimenon2Verse(reading.getProkeimenon2Verse())
+                    .prokeimenon2Stikheron(reading.getProkeimenon2Stikheron())
+                    .readingTitle(reading.getReadingTitle())
+                    .readingContent(reading.getReadingContent())
+                    .alleluiaTitle(reading.getAlleluiaTitle())
+                    .alleluiaTone(reading.getAlleluiaTone())
+                    .alleluiaVerse(reading.getAlleluiaVerse())
+                    .alleluiaStikheron(reading.getAlleluiaStikheron())
                     .build();
             EpistleReading saved = epistleRepo.save(entity);
             reading.setSourceId(saved.getId());
@@ -110,10 +144,20 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             GospelReading entity = GospelReading.builder()
                     .title(reading.getTitle())
                     .reference(reading.getReference())
-                    .content(reading.getContent())
+                    .type("gospel")
                     .liturgicalName(reading.getLiturgicalName())
                     .lang(reading.getLang())
                     .desc(reading.getDesc())
+                    // --- الإنجيل فقط ---
+                    .readingTitle(reading.getReadingTitle())
+                    .readingContent(reading.getReadingContent())
+                    .prokeimenonTitle(reading.getProkeimenonTitle())
+                    .prokeimenonTone(reading.getProkeimenonTone())
+                    .prokeimenonVerse(reading.getProkeimenonVerse())
+                    .alleluiaTitle(reading.getAlleluiaTitle())
+                    .alleluiaTone(reading.getAlleluiaTone())
+                    .alleluiaVerse(reading.getAlleluiaVerse())
+                    .alleluiaStikheron(reading.getAlleluiaStikheron())
                     .build();
             GospelReading saved = gospelRepo.save(entity);
             reading.setSourceId(saved.getId());
@@ -132,4 +176,3 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
         return saved;
     }
 }
-
