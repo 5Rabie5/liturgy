@@ -84,6 +84,7 @@ public class MarriageAllowedService {
 
         // إذا ما في مانع
         return new MarriageAllowedResponse(date, true, getMessage(CODE_ALLOWED, lang));
+        
     }
 
     private String getMessage(String code, String lang) {

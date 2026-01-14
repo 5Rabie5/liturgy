@@ -40,6 +40,7 @@ public class EpistleReading {
     private String alleluiaTone;
     private String alleluiaVerse;
     private String alleluiaStikheron;
+    private String koinonikon;
 
     // --- legacy (اختياري، للحفاظ على بيانات قديمة فقط) ---
     private String prokeimenon;
