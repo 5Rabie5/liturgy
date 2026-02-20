@@ -1,8 +1,8 @@
 package at.antiochorthodox.liturgy.controller;
 
+import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
 import at.antiochorthodox.liturgy.model.ScriptureReading;
-import at.antiochorthodox.liturgy.model.ScriptureReadingOption;
-import at.antiochorthodox.liturgy.service.ScriptureReadingResolverService;
+import at.antiochorthodox.liturgy.service.LiturgicalDayReadingsService;
 import at.antiochorthodox.liturgy.service.ScriptureReadingService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -12,82 +12,64 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/scripture-readings")
+@RequestMapping("/api/readings")
 public class ScriptureReadingController {
 
     private final ScriptureReadingService scriptureReadingService;
-    private final ScriptureReadingResolverService scriptureReadingResolverService;
+    private final LiturgicalDayReadingsService liturgicalDayReadingsService;
 
     public ScriptureReadingController(
             ScriptureReadingService scriptureReadingService,
-            ScriptureReadingResolverService scriptureReadingResolverService
+            LiturgicalDayReadingsService liturgicalDayReadingsService
     ) {
         this.scriptureReadingService = scriptureReadingService;
-        this.scriptureReadingResolverService = scriptureReadingResolverService;
+        this.liturgicalDayReadingsService = liturgicalDayReadingsService; // ✅ مهم
     }
 
     @GetMapping("/by-date-and-type")
     public ResponseEntity<List<ScriptureReading>> getReadingsByDateAndType(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam String type,
-            @RequestParam(defaultValue = "ar") String lang) {
+            @RequestParam(defaultValue = "any") String type,
+            @RequestParam(defaultValue = "ar") String lang
+    ) {
         List<ScriptureReading> readings = scriptureReadingService.getReadingsByDateAndType(date, type, lang);
-        if (readings.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        if (readings.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(readings);
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<ScriptureReadingOption>> getGroupedScriptureReadings(
+    @GetMapping("/reading-day")
+    public ResponseEntity<LiturgicalCalendarReadings> getReadingDay(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "ar") String lang) {
-        List<ScriptureReadingOption> options = scriptureReadingResolverService.getAllReadingOptionsForDay(date, lang);
-        if (options.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(options);
+            @RequestParam(defaultValue = "ar") String lang
+    ) {
+        LiturgicalCalendarReadings readings =
+                liturgicalDayReadingsService.buildGroupedReadingsForDate(date, lang);
+
+        if (readings == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(readings);
     }
-    @GetMapping("/by-reason")
-    public ResponseEntity<List<ScriptureReading>> getReadingsByReason(
-            @RequestParam(defaultValue = "liturgicalName") String reason,
-            @RequestParam String reasonDetail,
-            @RequestParam(defaultValue = "") String type,
+
+    @GetMapping("/by-liturgicalName")
+    public ResponseEntity<List<ScriptureReading>> getReadingsByLiturgicalName(
+            @RequestParam String liturgicalName,
+            @RequestParam(defaultValue = "any") String type,
             @RequestParam(defaultValue = "ar") String lang
     ) {
         List<ScriptureReading> readings =
-                scriptureReadingService.getReadingsByReason(reason, reasonDetail, type, lang);
+                scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, type, lang);
 
         if (readings.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(readings);
     }
-    @GetMapping("/by-liturgical-name")
-    public ResponseEntity<List<ScriptureReading>> getReadingsByLiturgicalName(
-            @RequestParam (defaultValue = "liturgicalName")String liturgicalName,
-            @RequestParam(defaultValue = "gospel") String type,
-            @RequestParam(defaultValue = "ar") String lang,
-            @RequestParam String reasonDetail ) {
-        List<ScriptureReading> readings =
-                scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, type, lang, reasonDetail);
-        if (readings.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(readings);
-    }
-    // لحفظ قراءة واحدة
+
     @PostMapping
-    public ResponseEntity<ScriptureReading> saveScriptureReading(
-            @RequestBody ScriptureReading reading
-    ) {
+    public ResponseEntity<ScriptureReading> saveScriptureReading(@RequestBody ScriptureReading reading) {
         ScriptureReading saved = scriptureReadingService.saveReading(reading);
         return ResponseEntity.ok(saved);
     }
 
-    // لحفظ مجموعة من القراءات دفعة واحدة
     @PostMapping("/batch")
-    public ResponseEntity<List<ScriptureReading>> saveScriptureReadingsBatch(
-            @RequestBody List<ScriptureReading> readings
-    ) {
+    public ResponseEntity<List<ScriptureReading>> saveScriptureReadingsBatch(@RequestBody List<ScriptureReading> readings) {
         List<ScriptureReading> saved = scriptureReadingService.saveReadings(readings);
         return ResponseEntity.ok(saved);
     }

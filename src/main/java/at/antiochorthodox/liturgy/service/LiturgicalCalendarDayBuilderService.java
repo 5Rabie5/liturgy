@@ -2,19 +2,16 @@ package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.dto.MarriageAllowedResponse;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
-import at.antiochorthodox.liturgy.model.ScriptureReading;
-import at.antiochorthodox.liturgy.model.ScriptureReadingOption;
+import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import org.springframework.stereotype.Service;
-import at.antiochorthodox.liturgy.model.ScriptureReadingOption;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
+
 @Service
 public class LiturgicalCalendarDayBuilderService {
 
-    private final ScriptureReadingResolverService scriptureReadingResolverService;
     private final SaintService saintService;
     private final FeastService feastService;
     private final FastingService fastingService;
@@ -22,22 +19,24 @@ public class LiturgicalCalendarDayBuilderService {
     private final PaschaDateCalculator paschaDateCalculator;
     private final MarriageAllowedService marriageAllowedService;
 
+    private final LiturgicalDayReadingsService liturgicalDayReadingsService; // ✅ مهم
+
     public LiturgicalCalendarDayBuilderService(
-            ScriptureReadingResolverService scriptureReadingResolverService,
             SaintService saintService,
             FeastService feastService,
             FastingService fastingService,
             LiturgicalLabelService liturgicalLabelService,
             PaschaDateCalculator paschaDateCalculator,
-            MarriageAllowedService marriageAllowedService
+            MarriageAllowedService marriageAllowedService,
+            LiturgicalDayReadingsService liturgicalDayReadingsService
     ) {
-        this.scriptureReadingResolverService = scriptureReadingResolverService;
         this.saintService = saintService;
         this.feastService = feastService;
         this.fastingService = fastingService;
         this.liturgicalLabelService = liturgicalLabelService;
         this.paschaDateCalculator = paschaDateCalculator;
         this.marriageAllowedService = marriageAllowedService;
+        this.liturgicalDayReadingsService = liturgicalDayReadingsService;
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
@@ -50,7 +49,8 @@ public class LiturgicalCalendarDayBuilderService {
         String fastingLevel = fastingService.getFastingEvelByLangAndDate(lang, date);
         MarriageAllowedResponse marriageInfo = marriageAllowedService.isMarriageAllowed(date, lang);
 
-        List<ScriptureReadingOption> readingOptions = scriptureReadingResolverService.getAllReadingOptionsForDay(date, lang);
+        LiturgicalCalendarReadings grouped =
+                liturgicalDayReadingsService.buildGroupedReadings(liturgicalName, fixedFeast, movableFeast, saints, lang);
 
         return LiturgicalCalendarDay.builder()
                 .date(date)
@@ -62,7 +62,7 @@ public class LiturgicalCalendarDayBuilderService {
                 .lang(lang)
                 .marriageAllowed(marriageInfo.isAllowed())
                 .marriageNote(marriageInfo.getMessage())
-                .readingOptions(readingOptions)
+                .readings(grouped) // ✅ لازم يكون عندك حقل readings في LiturgicalCalendarDay
                 .build();
     }
 }

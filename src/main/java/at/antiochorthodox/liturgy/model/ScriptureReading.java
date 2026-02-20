@@ -39,8 +39,4 @@ public class ScriptureReading {
     private String alleluiaTone;
     private String alleluiaVerse;
     private String alleluiaStikheron;
-
-    // حقول التتبع
-    private String reason;               // "liturgicalName", "fixedFeast", ...
-    private String reasonDetail;         // تفاصيل مثل: "عيد البشارة"، "أحد توما"
 }

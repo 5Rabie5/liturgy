@@ -28,5 +28,5 @@ public class LiturgicalCalendarDay {
     private Boolean marriageAllowed; // جديد
     private String marriageNote;     // جديد
 
-    private List<ScriptureReadingOption> readingOptions;
+    private LiturgicalCalendarReadings readings;
 }
