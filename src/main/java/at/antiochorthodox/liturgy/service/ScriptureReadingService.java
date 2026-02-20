@@ -14,4 +14,6 @@ public interface ScriptureReadingService {
 
     // دالة حفظ مجموعة قراءات دفعة واحدة
     List<ScriptureReading> saveReadings(List<ScriptureReading> readings);
+
+    List<ScriptureReading> getReadingsByReason(String reason, String reasonDetail, String type, String lang);
 }

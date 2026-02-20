@@ -38,7 +38,7 @@ public class ScriptureReadingController {
         return ResponseEntity.ok(readings);
     }
 
-    @GetMapping("/grouped")
+    @GetMapping("/all")
     public ResponseEntity<List<ScriptureReadingOption>> getGroupedScriptureReadings(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(defaultValue = "ar") String lang) {
@@ -48,12 +48,25 @@ public class ScriptureReadingController {
         }
         return ResponseEntity.ok(options);
     }
+    @GetMapping("/by-reason")
+    public ResponseEntity<List<ScriptureReading>> getReadingsByReason(
+            @RequestParam(defaultValue = "liturgicalName") String reason,
+            @RequestParam String reasonDetail,
+            @RequestParam(defaultValue = "") String type,
+            @RequestParam(defaultValue = "ar") String lang
+    ) {
+        List<ScriptureReading> readings =
+                scriptureReadingService.getReadingsByReason(reason, reasonDetail, type, lang);
+
+        if (readings.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(readings);
+    }
     @GetMapping("/by-liturgical-name")
     public ResponseEntity<List<ScriptureReading>> getReadingsByLiturgicalName(
-            @RequestParam String liturgicalName,
+            @RequestParam (defaultValue = "liturgicalName")String liturgicalName,
             @RequestParam(defaultValue = "gospel") String type,
             @RequestParam(defaultValue = "ar") String lang,
-             @RequestParam String reasonDetail ) {
+            @RequestParam String reasonDetail ) {
         List<ScriptureReading> readings =
                 scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, type, lang, reasonDetail);
         if (readings.isEmpty()) {

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ScriptureReadingServiceImpl implements ScriptureReadingService {
@@ -107,8 +108,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                     .reasonDetail(reasonDetail)
                     .build());
         }
-
-        return result;
+                           return result;
     }
 
     @Override
@@ -174,5 +174,73 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             saved.add(saveReading(reading));
         }
         return saved;
+    }
+
+    @Override
+    public List<ScriptureReading> getReadingsByReason(String reason, String reasonDetail, String type, String lang) {
+        List<ScriptureReading> result = new ArrayList<>();
+
+        // Epistle readings
+        List<EpistleReading> epistles = epistleRepo.findByLiturgicalNameAndLang(reasonDetail, lang);
+        for (EpistleReading e : epistles) {
+            result.add(ScriptureReading.builder()
+                    .title(e.getTitle())
+                    .reference(e.getReference())
+                    .type("epistle")
+                    .sourceId(e.getId())
+                    .liturgicalName(e.getLiturgicalName())
+                    .lang(e.getLang())
+                    .desc(e.getDesc())
+                    // --- الحقول الرسالية ---
+                    .prokeimenon1Title(e.getProkeimenon1Title())
+                    .prokeimenon1Tone(e.getProkeimenon1Tone())
+                    .prokeimenon1Verse(e.getProkeimenon1Verse())
+                    .prokeimenon1Stikheron(e.getProkeimenon1Stikheron())
+                    .prokeimenon2Title(e.getProkeimenon2Title())
+                    .prokeimenon2Tone(e.getProkeimenon2Tone())
+                    .prokeimenon2Verse(e.getProkeimenon2Verse())
+                    .prokeimenon2Stikheron(e.getProkeimenon2Stikheron())
+                    .readingTitle(e.getReadingTitle())
+                    .readingContent(e.getReadingContent())
+                    .alleluiaTitle(e.getAlleluiaTitle())
+                    .alleluiaTone(e.getAlleluiaTone())
+                    .alleluiaVerse(e.getAlleluiaVerse())
+                    .alleluiaStikheron(e.getAlleluiaStikheron())
+                    .reason(reason)
+                    .reasonDetail(reasonDetail)
+                    .build()
+            );
+        }
+
+        // Gospel readings
+        List<GospelReading> gospels = gospelRepo.findByLiturgicalNameAndLang(reasonDetail, lang);
+        for (GospelReading g : gospels) {
+            result.add(ScriptureReading.builder()
+                    .title(g.getTitle())
+                    .reference(g.getReference())
+                    .type("gospel")
+                    .sourceId(g.getId())
+                    .liturgicalName(g.getLiturgicalName())
+                    .lang(g.getLang())
+                    .desc(g.getDesc())
+                    // --- الإنجيل فقط ---
+                    .readingTitle(g.getReadingTitle())
+                    .readingContent(g.getReadingContent())
+                    .prokeimenonTitle(g.getProkeimenonTitle())
+                    .prokeimenonTone(g.getProkeimenonTone())
+                    .prokeimenonVerse(g.getProkeimenonVerse())
+                    .alleluiaTitle(g.getAlleluiaTitle())
+                    .alleluiaTone(g.getAlleluiaTone())
+                    .alleluiaVerse(g.getAlleluiaVerse())
+                    .alleluiaStikheron(g.getAlleluiaStikheron())
+                    .reason(reason)
+                    .reasonDetail(reasonDetail)
+                    .build()
+            );
+        }
+        gospels.stream()
+                .map(GospelReading::getType)
+                .forEach(System.out::println);
+              return result;
     }
 }
