@@ -48,7 +48,19 @@ public class ScriptureReadingController {
         }
         return ResponseEntity.ok(options);
     }
-
+    @GetMapping("/by-liturgical-name")
+    public ResponseEntity<List<ScriptureReading>> getReadingsByLiturgicalName(
+            @RequestParam String liturgicalName,
+            @RequestParam(defaultValue = "gospel") String type,
+            @RequestParam(defaultValue = "ar") String lang,
+             @RequestParam String reasonDetail ) {
+        List<ScriptureReading> readings =
+                scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, type, lang, reasonDetail);
+        if (readings.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(readings);
+    }
     // لحفظ قراءة واحدة
     @PostMapping
     public ResponseEntity<ScriptureReading> saveScriptureReading(
