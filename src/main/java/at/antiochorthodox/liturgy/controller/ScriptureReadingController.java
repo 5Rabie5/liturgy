@@ -23,7 +23,7 @@ public class ScriptureReadingController {
             LiturgicalDayReadingsService liturgicalDayReadingsService
     ) {
         this.scriptureReadingService = scriptureReadingService;
-        this.liturgicalDayReadingsService = liturgicalDayReadingsService; // ✅ مهم
+        this.liturgicalDayReadingsService = liturgicalDayReadingsService;
     }
 
     @GetMapping("/by-date-and-type")
@@ -33,7 +33,22 @@ public class ScriptureReadingController {
             @RequestParam(defaultValue = "ar") String lang
     ) {
         List<ScriptureReading> readings = scriptureReadingService.getReadingsByDateAndType(date, type, lang);
-        if (readings.isEmpty()) return ResponseEntity.notFound().build();
+        if (readings.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(readings);
+    }
+
+    @GetMapping("/by-day-key")
+    public ResponseEntity<List<ScriptureReading>> getReadingsByDayKey(
+            @RequestParam String dayKey,
+            @RequestParam(defaultValue = "any") String type,
+            @RequestParam(defaultValue = "ar") String lang
+    ) {
+        List<ScriptureReading> readings = scriptureReadingService.getReadingsByDayKey(dayKey, type, lang);
+        if (readings.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(readings);
     }
 
@@ -45,7 +60,9 @@ public class ScriptureReadingController {
         LiturgicalCalendarReadings readings =
                 liturgicalDayReadingsService.buildGroupedReadingsForDate(date, lang);
 
-        if (readings == null) return ResponseEntity.notFound().build();
+        if (readings == null) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(readings);
     }
 
@@ -58,7 +75,9 @@ public class ScriptureReadingController {
         List<ScriptureReading> readings =
                 scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, type, lang);
 
-        if (readings.isEmpty()) return ResponseEntity.notFound().build();
+        if (readings.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(readings);
     }
 

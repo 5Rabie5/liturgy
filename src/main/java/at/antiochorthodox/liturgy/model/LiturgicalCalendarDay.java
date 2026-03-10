@@ -9,24 +9,27 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class LiturgicalCalendarDay {
-    private LocalDate date;                   // التاريخ الميلادي
+    private LocalDate date;
 
-    private String liturgicalName;                   // اسم الأحد/المناسبة
+    private String liturgicalName;   // display label
+    private String liturgicalDayKey; // stable day identity
+    private String epistleKey;       // resolved epistle cycle key for the day
+    private String gospelKey;        // resolved gospel cycle key for the day
 
-    private List<String> saints;              // القديسون المعيَّد لهم في هذا اليوم
+    private List<String> saints;
 
-    private String gospelReading;             // مرجع الإنجيل (مثلاً: متى 5:1-12)
-    private String epistleReading;            // مرجع الرسالة (مثلاً: كورنثوس...)
-    private List<String> alternativeReadings; // إذا وجد أكثر من قراءة (اختياري)
+    private String gospelReading;
+    private String epistleReading;
+    private List<String> alternativeReadings;
 
-    private String fixedFeast;                // العيد الثابت (مثلاً: البشارة)
-    private String movableFeast;              // العيد المتغير (مثلاً: الشعانين)
+    private String fixedFeast;
+    private String movableFeast;
 
-    private String fastingLevel;               // نوع الصوم أو ملاحظة سريعة (صوم انقطاعي/صوم غير صارم/بدون صوم)
+    private String fastingLevel;
     private String lang;
     private String desc;
-    private Boolean marriageAllowed; // جديد
-    private String marriageNote;     // جديد
+    private Boolean marriageAllowed;
+    private String marriageNote;
 
     private LiturgicalCalendarReadings readings;
 }

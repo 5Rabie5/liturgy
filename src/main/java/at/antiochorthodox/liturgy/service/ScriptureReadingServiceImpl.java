@@ -1,12 +1,11 @@
 package at.antiochorthodox.liturgy.service;
 
+import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
 import at.antiochorthodox.liturgy.model.EpistleReading;
 import at.antiochorthodox.liturgy.model.GospelReading;
 import at.antiochorthodox.liturgy.model.ScriptureReading;
 import at.antiochorthodox.liturgy.repository.EpistleReadingRepository;
 import at.antiochorthodox.liturgy.repository.GospelReadingRepository;
-import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,45 +17,78 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
     private final EpistleReadingRepository epistleRepo;
     private final GospelReadingRepository gospelRepo;
-    private final LiturgicalWeekService liturgicalWeekService;
-    private final PaschaDateCalculator paschaDateCalculator;
+    private final LiturgicalDayContextService liturgicalDayContextService;
 
-    @Autowired
     public ScriptureReadingServiceImpl(
             EpistleReadingRepository epistleRepo,
             GospelReadingRepository gospelRepo,
-            LiturgicalWeekService liturgicalWeekService,
-            PaschaDateCalculator paschaDateCalculator
+            LiturgicalDayContextService liturgicalDayContextService
     ) {
         this.epistleRepo = epistleRepo;
         this.gospelRepo = gospelRepo;
-        this.liturgicalWeekService = liturgicalWeekService;
-        this.paschaDateCalculator = paschaDateCalculator;
+        this.liturgicalDayContextService = liturgicalDayContextService;
     }
 
     @Override
     public List<ScriptureReading> getReadingsByDateAndType(LocalDate date, String type, String lang) {
-        LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
-        LocalDate next = paschaDateCalculator.getNextPhariseePublicanSunday(pascha);
-
-        String liturgicalName = liturgicalWeekService.findLiturgicalNameForDate(date, pascha, next, lang);
-        if (liturgicalName == null || liturgicalName.isBlank()) return List.of();
-
-        // ✅ الترتيب الصحيح + بدون filter إضافي
-        return getReadingsByLiturgicalName(liturgicalName, type, lang);
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
+        if (context == null) {
+            return List.of();
+        }
+        return getReadingsByResolvedContext(context, type, lang);
     }
 
-      @Override
+    @Override
+    public List<ScriptureReading> getReadingsByDayKey(String dayKey, String type, String lang) {
+        LiturgicalDayContext context = liturgicalDayContextService.resolveByDayKey(dayKey, lang);
+        if (context == null) {
+            return List.of();
+        }
+        return getReadingsByResolvedContext(context, type, lang);
+    }
+
+    @Override
+    public List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String type, String lang) {
+        if (liturgicalName == null || liturgicalName.isBlank()) {
+            return List.of();
+        }
+
+        String t = normalizeType(type);
+        boolean needEpistle = "any".equals(t) || "epistle".equals(t);
+        boolean needGospel = "any".equals(t) || "gospel".equals(t);
+
+        List<ScriptureReading> result = new ArrayList<>();
+
+        if (needEpistle) {
+            for (EpistleReading e : epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
+                result.add(toDto(e, null));
+            }
+        }
+
+        if (needGospel) {
+            for (GospelReading g : gospelRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
+                result.add(toDto(g, null));
+            }
+        }
+
+        return result;
+    }
+    @Override
     public ScriptureReading saveReading(ScriptureReading reading) {
+        String resolvedReadingKey = firstNonBlank(reading.getReadingKey(), reading.getLiturgicalName());
+        if (resolvedReadingKey == null) {
+            throw new IllegalArgumentException("readingKey or liturgicalName is required");
+        }
+
         if ("epistle".equalsIgnoreCase(reading.getType())) {
             EpistleReading entity = EpistleReading.builder()
+                    .readingKey(resolvedReadingKey)
                     .title(reading.getTitle())
                     .reference(reading.getReference())
                     .type("epistle")
                     .liturgicalName(reading.getLiturgicalName())
                     .lang(reading.getLang())
                     .desc(reading.getDesc())
-                    // --- الحقول الرسالية ---
                     .prokeimenon1Title(reading.getProkeimenon1Title())
                     .prokeimenon1Tone(reading.getProkeimenon1Tone())
                     .prokeimenon1Verse(reading.getProkeimenon1Verse())
@@ -73,17 +105,20 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                     .alleluiaStikheron(reading.getAlleluiaStikheron())
                     .build();
             EpistleReading saved = epistleRepo.save(entity);
+            reading.setReadingKey(saved.getReadingKey());
             reading.setSourceId(saved.getId());
             return reading;
-        } else if ("gospel".equalsIgnoreCase(reading.getType())) {
+        }
+
+        if ("gospel".equalsIgnoreCase(reading.getType())) {
             GospelReading entity = GospelReading.builder()
+                    .readingKey(resolvedReadingKey)
                     .title(reading.getTitle())
                     .reference(reading.getReference())
                     .type("gospel")
                     .liturgicalName(reading.getLiturgicalName())
                     .lang(reading.getLang())
                     .desc(reading.getDesc())
-                    // --- الإنجيل فقط ---
                     .readingTitle(reading.getReadingTitle())
                     .readingContent(reading.getReadingContent())
                     .prokeimenonTitle(reading.getProkeimenonTitle())
@@ -95,11 +130,12 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                     .alleluiaStikheron(reading.getAlleluiaStikheron())
                     .build();
             GospelReading saved = gospelRepo.save(entity);
+            reading.setReadingKey(saved.getReadingKey());
             reading.setSourceId(saved.getId());
             return reading;
-        } else {
-            throw new IllegalArgumentException("Unsupported reading type: " + reading.getType());
         }
+
+        throw new IllegalArgumentException("Unsupported reading type: " + reading.getType());
     }
 
     @Override
@@ -111,71 +147,138 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
         return saved;
     }
 
-    @Override
-    public List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String type, String lang) {
-
-        String t = (type == null || type.isBlank()) ? "any" : type.trim().toLowerCase();
-
+    private List<ScriptureReading> getReadingsByResolvedContext(LiturgicalDayContext context, String type, String lang) {
+        String t = normalizeType(type);
         boolean needEpistle = "any".equals(t) || "epistle".equals(t);
-        boolean needGospel  = "any".equals(t) || "gospel".equals(t);
+        boolean needGospel = "any".equals(t) || "gospel".equals(t);
 
         List<ScriptureReading> result = new ArrayList<>();
 
-        if (needEpistle) {
-            List<EpistleReading> epistles = epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang);
-            for (EpistleReading e : epistles) {
-                result.add(ScriptureReading.builder()
-                        .title(e.getTitle())
-                        .reference(e.getReference())
-                        .type("epistle")
-                        .sourceId(e.getId())
-                        .liturgicalName(e.getLiturgicalName())
-                        .lang(e.getLang())
-                        .desc(e.getDesc())
-                        // --- الحقول الرسالية ---
-                        .prokeimenon1Title(e.getProkeimenon1Title())
-                        .prokeimenon1Tone(e.getProkeimenon1Tone())
-                        .prokeimenon1Verse(e.getProkeimenon1Verse())
-                        .prokeimenon1Stikheron(e.getProkeimenon1Stikheron())
-                        .prokeimenon2Title(e.getProkeimenon2Title())
-                        .prokeimenon2Tone(e.getProkeimenon2Tone())
-                        .prokeimenon2Verse(e.getProkeimenon2Verse())
-                        .prokeimenon2Stikheron(e.getProkeimenon2Stikheron())
-                        .readingTitle(e.getReadingTitle())
-                        .readingContent(e.getReadingContent())
-                        .alleluiaTitle(e.getAlleluiaTitle())
-                        .alleluiaTone(e.getAlleluiaTone())
-                        .alleluiaVerse(e.getAlleluiaVerse())
-                        .alleluiaStikheron(e.getAlleluiaStikheron())
-                        .build());
+        boolean resolvedEpistleByKey = false;
+        boolean resolvedGospelByKey = false;
+
+        if (needEpistle && hasText(context.getEpistleKey())) {
+            List<EpistleReading> epistles = epistleRepo.findByReadingKeyAndLang(context.getEpistleKey(), lang);
+            if (!epistles.isEmpty()) {
+                resolvedEpistleByKey = true;
+                for (EpistleReading e : epistles) {
+                    addIfAbsent(result, toDto(e, context.getDayKey()));
+                }
             }
         }
 
-        if (needGospel) {
-            List<GospelReading> gospels = gospelRepo.findByLiturgicalNameAndLang(liturgicalName, lang);
-            for (GospelReading g : gospels) {
-                result.add(ScriptureReading.builder()
-                        .title(g.getTitle())
-                        .reference(g.getReference())
-                        .type("gospel")
-                        .sourceId(g.getId())
-                        .liturgicalName(g.getLiturgicalName())
-                        .lang(g.getLang())
-                        .desc(g.getDesc())
-                        // --- الإنجيل فقط ---
-                        .readingTitle(g.getReadingTitle())
-                        .readingContent(g.getReadingContent())
-                        .prokeimenonTitle(g.getProkeimenonTitle())
-                        .prokeimenonTone(g.getProkeimenonTone())
-                        .prokeimenonVerse(g.getProkeimenonVerse())
-                        .alleluiaTitle(g.getAlleluiaTitle())
-                        .alleluiaTone(g.getAlleluiaTone())
-                        .alleluiaVerse(g.getAlleluiaVerse())
-                        .alleluiaStikheron(g.getAlleluiaStikheron())
-                        .build());
+        if (needGospel && hasText(context.getGospelKey())) {
+            List<GospelReading> gospels = gospelRepo.findByReadingKeyAndLang(context.getGospelKey(), lang);
+            if (!gospels.isEmpty()) {
+                resolvedGospelByKey = true;
+                for (GospelReading g : gospels) {
+                    addIfAbsent(result, toDto(g, context.getDayKey()));
+                }
+            }
+        }
+
+        if (hasText(context.getDayLabel())) {
+            if (needEpistle && !resolvedEpistleByKey) {
+                for (ScriptureReading legacy : getReadingsByLiturgicalName(context.getDayLabel(), "epistle", lang)) {
+                    legacy.setDayKey(context.getDayKey());
+                    addIfAbsent(result, legacy);
+                }
+            }
+            if (needGospel && !resolvedGospelByKey) {
+                for (ScriptureReading legacy : getReadingsByLiturgicalName(context.getDayLabel(), "gospel", lang)) {
+                    legacy.setDayKey(context.getDayKey());
+                    addIfAbsent(result, legacy);
+                }
             }
         }
 
         return result;
+    }
+
+    private String normalizeType(String type) {
+        return (type == null || type.isBlank()) ? "any" : type.trim().toLowerCase();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private void addIfAbsent(List<ScriptureReading> result, ScriptureReading candidate) {
+        String candidateKey = firstNonBlank(candidate.getSourceId(), candidate.getReadingKey(), candidate.getReference());
+        for (ScriptureReading existing : result) {
+            String existingKey = firstNonBlank(existing.getSourceId(), existing.getReadingKey(), existing.getReference());
+            if (existing.getType() != null && existing.getType().equalsIgnoreCase(candidate.getType())
+                    && existingKey != null && existingKey.equals(candidateKey)) {
+                return;
+            }
+        }
+        result.add(candidate);
+    }
+
+    private ScriptureReading toDto(EpistleReading e, String dayKey) {
+        return ScriptureReading.builder()
+                .title(e.getTitle())
+                .reference(e.getReference())
+                .type("epistle")
+                .sourceId(e.getId())
+                .readingKey(e.getReadingKey())
+                .dayKey(dayKey)
+                .liturgicalName(e.getLiturgicalName())
+                .lang(e.getLang())
+                .desc(e.getDesc())
+                .prokeimenon1Title(e.getProkeimenon1Title())
+                .prokeimenon1Tone(e.getProkeimenon1Tone())
+                .prokeimenon1Verse(e.getProkeimenon1Verse())
+                .prokeimenon1Stikheron(e.getProkeimenon1Stikheron())
+                .prokeimenon2Title(e.getProkeimenon2Title())
+                .prokeimenon2Tone(e.getProkeimenon2Tone())
+                .prokeimenon2Verse(e.getProkeimenon2Verse())
+                .prokeimenon2Stikheron(e.getProkeimenon2Stikheron())
+                .readingTitle(e.getReadingTitle())
+                .readingContent(e.getReadingContent())
+                .alleluiaTitle(e.getAlleluiaTitle())
+                .alleluiaTone(e.getAlleluiaTone())
+                .alleluiaVerse(e.getAlleluiaVerse())
+                .alleluiaStikheron(e.getAlleluiaStikheron())
+                .build();
+    }
+
+    private ScriptureReading toDto(GospelReading g, String dayKey) {
+        return ScriptureReading.builder()
+                .title(g.getTitle())
+                .reference(g.getReference())
+                .type("gospel")
+                .sourceId(g.getId())
+                .readingKey(g.getReadingKey())
+                .dayKey(dayKey)
+                .liturgicalName(g.getLiturgicalName())
+                .lang(g.getLang())
+                .desc(g.getDesc())
+                .readingTitle(g.getReadingTitle())
+                .readingContent(g.getReadingContent())
+                .prokeimenonTitle(g.getProkeimenonTitle())
+                .prokeimenonTone(g.getProkeimenonTone())
+                .prokeimenonVerse(g.getProkeimenonVerse())
+                .alleluiaTitle(g.getAlleluiaTitle())
+                .alleluiaTone(g.getAlleluiaTone())
+                .alleluiaVerse(g.getAlleluiaVerse())
+                .alleluiaStikheron(g.getAlleluiaStikheron())
+                .build();
+    }
+    @Override
+    public List<ScriptureReading> getReadingsByLegacyName(String liturgicalName, String type, String lang) {
+        return getReadingsByLiturgicalName(liturgicalName, type, lang);
     }
 }

@@ -1,9 +1,9 @@
 package at.antiochorthodox.liturgy.service;
 
+import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
 import at.antiochorthodox.liturgy.dto.MarriageAllowedResponse;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
-import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -15,34 +15,29 @@ public class LiturgicalCalendarDayBuilderService {
     private final SaintService saintService;
     private final FeastService feastService;
     private final FastingService fastingService;
-    private final LiturgicalLabelService liturgicalLabelService;
-    private final PaschaDateCalculator paschaDateCalculator;
     private final MarriageAllowedService marriageAllowedService;
-
-    private final LiturgicalDayReadingsService liturgicalDayReadingsService; // ✅ مهم
+    private final LiturgicalDayReadingsService liturgicalDayReadingsService;
+    private final LiturgicalDayContextService liturgicalDayContextService;
 
     public LiturgicalCalendarDayBuilderService(
             SaintService saintService,
             FeastService feastService,
             FastingService fastingService,
-            LiturgicalLabelService liturgicalLabelService,
-            PaschaDateCalculator paschaDateCalculator,
             MarriageAllowedService marriageAllowedService,
-            LiturgicalDayReadingsService liturgicalDayReadingsService
+            LiturgicalDayReadingsService liturgicalDayReadingsService,
+            LiturgicalDayContextService liturgicalDayContextService
     ) {
         this.saintService = saintService;
         this.feastService = feastService;
         this.fastingService = fastingService;
-        this.liturgicalLabelService = liturgicalLabelService;
-        this.paschaDateCalculator = paschaDateCalculator;
         this.marriageAllowedService = marriageAllowedService;
         this.liturgicalDayReadingsService = liturgicalDayReadingsService;
+        this.liturgicalDayContextService = liturgicalDayContextService;
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
-        LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
 
-        String liturgicalName = liturgicalLabelService.getLabelForDate(date, pascha, lang);
         List<String> saints = saintService.findNamesByLangAndDate(lang, date);
         String fixedFeast = feastService.findFixedFeastNameByLangAndDate(lang, date);
         String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
@@ -50,11 +45,14 @@ public class LiturgicalCalendarDayBuilderService {
         MarriageAllowedResponse marriageInfo = marriageAllowedService.isMarriageAllowed(date, lang);
 
         LiturgicalCalendarReadings grouped =
-                liturgicalDayReadingsService.buildGroupedReadings(liturgicalName, fixedFeast, movableFeast, saints, lang);
+                liturgicalDayReadingsService.buildGroupedReadings(context, fixedFeast, movableFeast, saints, lang);
 
         return LiturgicalCalendarDay.builder()
                 .date(date)
-                .liturgicalName(liturgicalName)
+                .liturgicalName(context != null ? context.getDayLabel() : null)
+                .liturgicalDayKey(context != null ? context.getDayKey() : null)
+                .epistleKey(context != null ? context.getEpistleKey() : null)
+                .gospelKey(context != null ? context.getGospelKey() : null)
                 .saints(saints)
                 .fixedFeast(fixedFeast)
                 .movableFeast(movableFeast)
@@ -62,7 +60,7 @@ public class LiturgicalCalendarDayBuilderService {
                 .lang(lang)
                 .marriageAllowed(marriageInfo.isAllowed())
                 .marriageNote(marriageInfo.getMessage())
-                .readings(grouped) // ✅ لازم يكون عندك حقل readings في LiturgicalCalendarDay
+                .readings(grouped)
                 .build();
     }
 }

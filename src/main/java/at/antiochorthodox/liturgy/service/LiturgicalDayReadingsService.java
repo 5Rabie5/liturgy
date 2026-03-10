@@ -1,7 +1,9 @@
 package at.antiochorthodox.liturgy.service;
 
-import at.antiochorthodox.liturgy.model.*;
-import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
+import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
+import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
+import at.antiochorthodox.liturgy.model.ReadingGroup;
+import at.antiochorthodox.liturgy.model.ScriptureReading;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -14,56 +16,65 @@ public class LiturgicalDayReadingsService {
     private final ScriptureReadingService scriptureReadingService;
     private final SaintService saintService;
     private final FeastService feastService;
-    private final LiturgicalLabelService liturgicalLabelService;
-    private final PaschaDateCalculator paschaDateCalculator;
+    private final LiturgicalDayContextService liturgicalDayContextService;
 
     public LiturgicalDayReadingsService(
             ScriptureReadingService scriptureReadingService,
             SaintService saintService,
             FeastService feastService,
-            LiturgicalLabelService liturgicalLabelService,
-            PaschaDateCalculator paschaDateCalculator
+            LiturgicalDayContextService liturgicalDayContextService
     ) {
         this.scriptureReadingService = scriptureReadingService;
         this.saintService = saintService;
         this.feastService = feastService;
-        this.liturgicalLabelService = liturgicalLabelService;
-        this.paschaDateCalculator = paschaDateCalculator;
+        this.liturgicalDayContextService = liturgicalDayContextService;
     }
 
-    // ✅ الجديد: يبني قراءات اليوم مباشرة من date/lang
+    /**
+     * NEW:
+     * يبني قراءات اليوم من التاريخ مباشرة باستخدام dayKey / readingKey
+     * مع الإبقاء على الأعياد والقديسين على legacy text lookup مؤقتًا.
+     */
     public LiturgicalCalendarReadings buildGroupedReadingsForDate(LocalDate date, String lang) {
-        LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
 
-        String liturgicalName = liturgicalLabelService.getLabelForDate(date, pascha, lang);
         List<String> saints = saintService.findNamesByLangAndDate(lang, date);
         String fixedFeast = feastService.findFixedFeastNameByLangAndDate(lang, date);
         String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
 
-        return buildGroupedReadings(liturgicalName, fixedFeast, movableFeast, saints, lang);
+        return buildGroupedReadings(context, fixedFeast, movableFeast, saints, lang);
     }
 
-    // ✅ هذا نفس كودك الحالي (كما هو)
+    /**
+     * NEW:
+     * البناء الأساسي الجديد المعتمد على LiturgicalDayContext.
+     */
     public LiturgicalCalendarReadings buildGroupedReadings(
-            String liturgicalName,
+            LiturgicalDayContext context,
             String fixedFeast,
             String movableFeast,
             List<String> saints,
             String lang
     ) {
         ReadingGroup liturgicalGroup = null;
-        if (liturgicalName != null && !liturgicalName.isBlank()) {
-            List<ScriptureReading> readings = scriptureReadingService.getReadingsByLiturgicalName(liturgicalName, "any", lang);
+
+        if (context != null && context.getDayKey() != null && !context.getDayKey().isBlank()) {
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByDayKey(context.getDayKey(), "any", lang);
+
             liturgicalGroup = ReadingGroup.builder()
-                    .key(liturgicalName)
-                    .label("Liturgical Day Readings")
+                    .key(context.getDayKey())
+                    .label(context.getDayLabel() != null ? context.getDayLabel() : "Liturgical Day Readings")
+                    .desc(context.getDayLabel())
                     .readings(readings)
                     .build();
         }
 
         ReadingGroup fixedGroup = null;
         if (fixedFeast != null && !fixedFeast.isBlank()) {
-            List<ScriptureReading> readings = scriptureReadingService.getReadingsByLiturgicalName(fixedFeast, "any", lang);
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", lang);
+
             fixedGroup = ReadingGroup.builder()
                     .key(fixedFeast)
                     .label("Fixed Feast Readings")
@@ -73,7 +84,9 @@ public class LiturgicalDayReadingsService {
 
         ReadingGroup movableGroup = null;
         if (movableFeast != null && !movableFeast.isBlank()) {
-            List<ScriptureReading> readings = scriptureReadingService.getReadingsByLiturgicalName(movableFeast, "any", lang);
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", lang);
+
             movableGroup = ReadingGroup.builder()
                     .key(movableFeast)
                     .label("Movable Feast Readings")
@@ -84,11 +97,96 @@ public class LiturgicalDayReadingsService {
         List<ReadingGroup> saintGroups = new ArrayList<>();
         if (saints != null) {
             for (String saint : saints) {
-                if (saint == null || saint.isBlank()) continue;
+                if (saint == null || saint.isBlank()) {
+                    continue;
+                }
 
                 String key = "عيد القديس " + saint;
-                List<ScriptureReading> readings = scriptureReadingService.getReadingsByLiturgicalName(key, "any", lang);
-                if (readings == null || readings.isEmpty()) continue;
+                List<ScriptureReading> readings =
+                        scriptureReadingService.getReadingsByLegacyName(key, "any", lang);
+
+                if (readings == null || readings.isEmpty()) {
+                    continue;
+                }
+
+                saintGroups.add(ReadingGroup.builder()
+                        .key(key)
+                        .label("Saint Readings")
+                        .desc(saint)
+                        .readings(readings)
+                        .build());
+            }
+        }
+
+        return LiturgicalCalendarReadings.builder()
+                .liturgicalDay(liturgicalGroup)
+                .fixedFeast(fixedGroup)
+                .movableFeast(movableGroup)
+                .saints(saintGroups)
+                .build();
+    }
+
+    /**
+     * LEGACY COMPATIBILITY:
+     * هذا الميثود أبقيته حتى لا ينكسر أي كود قديم ما زال يمرر liturgicalName كنص.
+     */
+    public LiturgicalCalendarReadings buildGroupedReadings(
+            String liturgicalName,
+            String fixedFeast,
+            String movableFeast,
+            List<String> saints,
+            String lang
+    ) {
+        ReadingGroup liturgicalGroup = null;
+        if (liturgicalName != null && !liturgicalName.isBlank()) {
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByLegacyName(liturgicalName, "any", lang);
+
+            liturgicalGroup = ReadingGroup.builder()
+                    .key(liturgicalName)
+                    .label("Liturgical Day Readings")
+                    .readings(readings)
+                    .build();
+        }
+
+        ReadingGroup fixedGroup = null;
+        if (fixedFeast != null && !fixedFeast.isBlank()) {
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", lang);
+
+            fixedGroup = ReadingGroup.builder()
+                    .key(fixedFeast)
+                    .label("Fixed Feast Readings")
+                    .readings(readings)
+                    .build();
+        }
+
+        ReadingGroup movableGroup = null;
+        if (movableFeast != null && !movableFeast.isBlank()) {
+            List<ScriptureReading> readings =
+                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", lang);
+
+            movableGroup = ReadingGroup.builder()
+                    .key(movableFeast)
+                    .label("Movable Feast Readings")
+                    .readings(readings)
+                    .build();
+        }
+
+        List<ReadingGroup> saintGroups = new ArrayList<>();
+        if (saints != null) {
+            for (String saint : saints) {
+                if (saint == null || saint.isBlank()) {
+                    continue;
+                }
+
+                String key = "عيد القديس " + saint;
+                List<ScriptureReading> readings =
+                        scriptureReadingService.getReadingsByLegacyName(key, "any", lang);
+
+                if (readings == null || readings.isEmpty()) {
+                    continue;
+                }
 
                 saintGroups.add(ReadingGroup.builder()
                         .key(key)

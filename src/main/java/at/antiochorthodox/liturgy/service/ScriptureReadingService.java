@@ -7,7 +7,9 @@ import java.util.List;
 
 public interface ScriptureReadingService {
     List<ScriptureReading> getReadingsByDateAndType(LocalDate date, String type, String lang);
-    List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String lang, String type);
+    List<ScriptureReading> getReadingsByDayKey(String dayKey, String type, String lang);
+    List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String type, String lang);
     ScriptureReading saveReading(ScriptureReading reading);
     List<ScriptureReading> saveReadings(List<ScriptureReading> readings);
+    List<ScriptureReading> getReadingsByLegacyName(String liturgicalName, String type, String lang);
 }

@@ -13,12 +13,13 @@ public class LiturgicalLabel {
     @Id
     private String id;
 
-    private String labelKey;    // مثل: PASCHA_SUNDAY أو MONDAY_AFTER_PASCHA
+    private String labelKey;    // legacy/week label key (can repeat across weekdays)
+    private String dayKey;      // new unique key for a specific liturgical day
     private String lang;        // "ar", "en", "fr", "de", "nl"
-    private String text;        // النص المعروض
+    private String text;        // display text
 
     private String type;        // sunday / weekday
-    private String season;      // pascha / pentecost
-    private Integer weekIndex;  // رقم الأسبوع
+    private String season;      // pascha / pentecost / triodion
+    private Integer weekIndex;  // week number in the season
     private String dayOfWeek;   // monday, tuesday ...
 }
