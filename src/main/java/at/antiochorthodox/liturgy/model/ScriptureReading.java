@@ -11,6 +11,8 @@ public class ScriptureReading {
 
     private String liturgicalName;    // legacy display / fallback lookup name
     private String dayKey;            // unique day identity for the liturgical day
+    private String slot;              // default / liturgy / matins / vespers / wedding / funeral / etc.
+    private String sourceType;        // daily / fixed_feast / saint / resurrection / hour / service
     private String readingKey;        // stable reading identity for epistle/gospel cycles
 
     private String title;

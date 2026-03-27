@@ -9,6 +9,8 @@ import lombok.*;
 public class LiturgicalDayContext {
     private String dayKey;
     private String dayLabel;
+    private String slot;
+    private String sourceType;
     private String epistleKey;
     private String gospelKey;
 }

@@ -51,6 +51,8 @@ public class LiturgicalCalendarDayBuilderService {
                 .date(date)
                 .liturgicalName(context != null ? context.getDayLabel() : null)
                 .liturgicalDayKey(context != null ? context.getDayKey() : null)
+                .readingSlot(context != null ? context.getSlot() : null)
+                .readingSourceType(context != null ? context.getSourceType() : null)
                 .epistleKey(context != null ? context.getEpistleKey() : null)
                 .gospelKey(context != null ? context.getGospelKey() : null)
                 .saints(saints)

@@ -15,7 +15,9 @@ public class LiturgicalDayReadingMap {
 
     private String tradition;   // ANTIOCHIAN
     private String dayKey;      // stable day identity
-    private String epistleKey;  // stable epistle cycle key
-    private String gospelKey;   // stable gospel cycle key
+    private String slot;        // default / liturgy / matins / vespers / wedding / funeral / etc.
+    private String sourceType;  // daily / fixed_feast / saint / resurrection / hour / service
+    private String epistleKey;  // stable epistle cycle key for this slot
+    private String gospelKey;   // stable gospel cycle key for this slot
     private String notes;
 }

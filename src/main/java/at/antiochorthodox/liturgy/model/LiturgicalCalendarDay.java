@@ -13,8 +13,10 @@ public class LiturgicalCalendarDay {
 
     private String liturgicalName;   // display label
     private String liturgicalDayKey; // stable day identity
-    private String epistleKey;       // resolved epistle cycle key for the day
-    private String gospelKey;        // resolved gospel cycle key for the day
+    private String readingSlot;      // resolved slot for the map entry
+    private String readingSourceType; // daily / fixed_feast / saint / resurrection / hour / service
+    private String epistleKey;       // resolved epistle cycle key for the day / slot
+    private String gospelKey;        // resolved gospel cycle key for the day / slot
 
     private List<String> saints;
 

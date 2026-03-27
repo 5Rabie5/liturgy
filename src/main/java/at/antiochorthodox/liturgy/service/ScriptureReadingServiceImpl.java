@@ -31,7 +31,12 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
     @Override
     public List<ScriptureReading> getReadingsByDateAndType(LocalDate date, String type, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
+        return getReadingsByDateAndType(date, null, type, lang);
+    }
+
+    @Override
+    public List<ScriptureReading> getReadingsByDateAndType(LocalDate date, String slot, String type, String lang) {
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang, slot);
         if (context == null) {
             return List.of();
         }
@@ -40,7 +45,12 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
     @Override
     public List<ScriptureReading> getReadingsByDayKey(String dayKey, String type, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveByDayKey(dayKey, lang);
+        return getReadingsByDayKey(dayKey, null, type, lang);
+    }
+
+    @Override
+    public List<ScriptureReading> getReadingsByDayKey(String dayKey, String slot, String type, String lang) {
+        LiturgicalDayContext context = liturgicalDayContextService.resolveByDayKey(dayKey, lang, slot);
         if (context == null) {
             return List.of();
         }
@@ -61,18 +71,19 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
         if (needEpistle) {
             for (EpistleReading e : epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
-                result.add(toDto(e, null));
+                result.add(toDto(e, null, null, null));
             }
         }
 
         if (needGospel) {
             for (GospelReading g : gospelRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
-                result.add(toDto(g, null));
+                result.add(toDto(g, null, null, null));
             }
         }
 
         return result;
     }
+
     @Override
     public ScriptureReading saveReading(ScriptureReading reading) {
         String resolvedReadingKey = firstNonBlank(reading.getReadingKey(), reading.getLiturgicalName());
@@ -162,7 +173,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             if (!epistles.isEmpty()) {
                 resolvedEpistleByKey = true;
                 for (EpistleReading e : epistles) {
-                    addIfAbsent(result, toDto(e, context.getDayKey()));
+                    addIfAbsent(result, toDto(e, context.getDayKey(), context.getSlot(), context.getSourceType()));
                 }
             }
         }
@@ -172,7 +183,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             if (!gospels.isEmpty()) {
                 resolvedGospelByKey = true;
                 for (GospelReading g : gospels) {
-                    addIfAbsent(result, toDto(g, context.getDayKey()));
+                    addIfAbsent(result, toDto(g, context.getDayKey(), context.getSlot(), context.getSourceType()));
                 }
             }
         }
@@ -181,12 +192,16 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             if (needEpistle && !resolvedEpistleByKey) {
                 for (ScriptureReading legacy : getReadingsByLiturgicalName(context.getDayLabel(), "epistle", lang)) {
                     legacy.setDayKey(context.getDayKey());
+                    legacy.setSlot(context.getSlot());
+                    legacy.setSourceType(context.getSourceType());
                     addIfAbsent(result, legacy);
                 }
             }
             if (needGospel && !resolvedGospelByKey) {
                 for (ScriptureReading legacy : getReadingsByLiturgicalName(context.getDayLabel(), "gospel", lang)) {
                     legacy.setDayKey(context.getDayKey());
+                    legacy.setSlot(context.getSlot());
+                    legacy.setSourceType(context.getSourceType());
                     addIfAbsent(result, legacy);
                 }
             }
@@ -227,7 +242,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
         result.add(candidate);
     }
 
-    private ScriptureReading toDto(EpistleReading e, String dayKey) {
+    private ScriptureReading toDto(EpistleReading e, String dayKey, String slot, String sourceType) {
         return ScriptureReading.builder()
                 .title(e.getTitle())
                 .reference(e.getReference())
@@ -235,6 +250,8 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                 .sourceId(e.getId())
                 .readingKey(e.getReadingKey())
                 .dayKey(dayKey)
+                .slot(slot)
+                .sourceType(sourceType)
                 .liturgicalName(e.getLiturgicalName())
                 .lang(e.getLang())
                 .desc(e.getDesc())
@@ -255,7 +272,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                 .build();
     }
 
-    private ScriptureReading toDto(GospelReading g, String dayKey) {
+    private ScriptureReading toDto(GospelReading g, String dayKey, String slot, String sourceType) {
         return ScriptureReading.builder()
                 .title(g.getTitle())
                 .reference(g.getReference())
@@ -263,6 +280,8 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                 .sourceId(g.getId())
                 .readingKey(g.getReadingKey())
                 .dayKey(dayKey)
+                .slot(slot)
+                .sourceType(sourceType)
                 .liturgicalName(g.getLiturgicalName())
                 .lang(g.getLang())
                 .desc(g.getDesc())
@@ -277,6 +296,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
                 .alleluiaStikheron(g.getAlleluiaStikheron())
                 .build();
     }
+
     @Override
     public List<ScriptureReading> getReadingsByLegacyName(String liturgicalName, String type, String lang) {
         return getReadingsByLiturgicalName(liturgicalName, type, lang);

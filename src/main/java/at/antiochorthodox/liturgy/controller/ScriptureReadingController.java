@@ -29,10 +29,11 @@ public class ScriptureReadingController {
     @GetMapping("/by-date-and-type")
     public ResponseEntity<List<ScriptureReading>> getReadingsByDateAndType(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) String slot,
             @RequestParam(defaultValue = "any") String type,
             @RequestParam(defaultValue = "ar") String lang
     ) {
-        List<ScriptureReading> readings = scriptureReadingService.getReadingsByDateAndType(date, type, lang);
+        List<ScriptureReading> readings = scriptureReadingService.getReadingsByDateAndType(date, slot, type, lang);
         if (readings.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -42,10 +43,11 @@ public class ScriptureReadingController {
     @GetMapping("/by-day-key")
     public ResponseEntity<List<ScriptureReading>> getReadingsByDayKey(
             @RequestParam String dayKey,
+            @RequestParam(required = false) String slot,
             @RequestParam(defaultValue = "any") String type,
             @RequestParam(defaultValue = "ar") String lang
     ) {
-        List<ScriptureReading> readings = scriptureReadingService.getReadingsByDayKey(dayKey, type, lang);
+        List<ScriptureReading> readings = scriptureReadingService.getReadingsByDayKey(dayKey, slot, type, lang);
         if (readings.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
