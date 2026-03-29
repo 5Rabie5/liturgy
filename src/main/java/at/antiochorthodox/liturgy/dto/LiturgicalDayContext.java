@@ -7,6 +7,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class LiturgicalDayContext {
+    private String calendarDayKey;
+    private String readingDayKey;
     private String dayKey;
     private String dayLabel;
     private String slot;

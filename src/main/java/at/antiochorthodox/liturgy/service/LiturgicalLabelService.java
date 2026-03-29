@@ -18,6 +18,34 @@ public class LiturgicalLabelService {
     public static final String DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE = "SATURDAY_OF_SOULS_BEFORE_MEATFARE";
     public static final String DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST = "SATURDAY_OF_SOULS_BEFORE_PENTECOST";
 
+    public static final String DAY_KEY_LAZARUS_SATURDAY = "LAZARUS_SATURDAY";
+    public static final String DAY_KEY_PALM_SUNDAY = "PALM_SUNDAY";
+    public static final String DAY_KEY_HOLY_MONDAY = "HOLY_MONDAY";
+    public static final String DAY_KEY_HOLY_TUESDAY = "HOLY_TUESDAY";
+    public static final String DAY_KEY_HOLY_WEDNESDAY = "HOLY_WEDNESDAY";
+    public static final String DAY_KEY_HOLY_THURSDAY = "HOLY_THURSDAY";
+    public static final String DAY_KEY_HOLY_FRIDAY = "HOLY_FRIDAY";
+    public static final String DAY_KEY_HOLY_SATURDAY = "HOLY_SATURDAY";
+    public static final String DAY_KEY_PASCHA_SUNDAY = "PASCHA_SUNDAY";
+    public static final String DAY_KEY_RENEWAL_SATURDAY = "RENEWAL_SATURDAY";
+    public static final String DAY_KEY_THOMAS_SUNDAY = "THOMAS_SUNDAY";
+    public static final String DAY_KEY_MID_PENTECOST = "MID_PENTECOST";
+    public static final String DAY_KEY_ASCENSION = "ASCENSION";
+    public static final String DAY_KEY_PENTECOST_SUNDAY = "PENTECOST_SUNDAY";
+    public static final String DAY_KEY_MONDAY_OF_HOLY_SPIRIT = "MONDAY_OF_HOLY_SPIRIT";
+    public static final String DAY_KEY_ALL_SAINTS_SUNDAY = "ALL_SAINTS_SUNDAY";
+
+    public static final String DAY_KEY_FATHERS_1ST_ECUMENICAL_COUNCIL_SUNDAY = "FATHERS_1ST_ECUMENICAL_COUNCIL_SUNDAY";
+    public static final String DAY_KEY_FATHERS_4TH_ECUMENICAL_COUNCIL_SUNDAY = "FATHERS_4TH_ECUMENICAL_COUNCIL_SUNDAY";
+    public static final String DAY_KEY_FATHERS_7TH_ECUMENICAL_COUNCIL_SUNDAY = "FATHERS_7TH_ECUMENICAL_COUNCIL_SUNDAY";
+
+    public static final String DAY_KEY_FOREFATHERS_SUNDAY = "FOREFATHERS_SUNDAY";
+    public static final String DAY_KEY_HOLY_ANCESTORS_SUNDAY = "HOLY_ANCESTORS_SUNDAY";
+    public static final String DAY_KEY_SUNDAY_BEFORE_NATIVITY = "SUNDAY_BEFORE_NATIVITY";
+    public static final String DAY_KEY_SUNDAY_AFTER_NATIVITY = "SUNDAY_AFTER_NATIVITY";
+    public static final String DAY_KEY_SUNDAY_BEFORE_THEOPHANY = "SUNDAY_BEFORE_THEOPHANY";
+    public static final String DAY_KEY_SUNDAY_AFTER_THEOPHANY = "SUNDAY_AFTER_THEOPHANY";
+
     private final LiturgicalLabelRepository labelRepository;
     private final FeastService feastService;
     private final PaschaDateCalculator paschaDateCalculator;
@@ -36,12 +64,16 @@ public class LiturgicalLabelService {
      * Legacy API kept for compatibility. Returns the display label for the resolved day.
      */
     public String getLabelForDate(LocalDate date, LocalDate pascha, String lang) {
-        return resolveLabelEntityForDate(date, pascha, lang)
-                .map(LiturgicalLabel::getText)
-                .orElse(null);
+        String dayKey = getDayKeyForDate(date, pascha, lang);
+        return dayKey == null ? null : getLabelForDayKey(dayKey, lang);
     }
 
     public String getDayKeyForDate(LocalDate date, LocalDate pascha, String lang) {
+        String specialDayKey = resolveSpecialMovableDayKey(date, pascha);
+        if (specialDayKey != null) {
+            return specialDayKey;
+        }
+
         return resolveLabelEntityForDate(date, pascha, lang)
                 .map(this::ensureDayKey)
                 .orElse(null);
@@ -57,6 +89,16 @@ public class LiturgicalLabelService {
             return byStoredDayKey.get().getText();
         }
 
+        Optional<LiturgicalLabel> byStoredLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
+        if (byStoredLabelKey.isPresent()) {
+            return byStoredLabelKey.get().getText();
+        }
+
+        String specialText = getSpecialDayText(dayKey, lang);
+        if (specialText != null) {
+            return specialText;
+        }
+
         DayKeyParts parts = parseDayKey(dayKey);
         if (parts == null) {
             return null;
@@ -70,6 +112,11 @@ public class LiturgicalLabelService {
     }
 
     public Optional<LiturgicalLabel> resolveLabelEntityForDate(LocalDate date, LocalDate pascha, String lang) {
+        String specialDayKey = resolveSpecialMovableDayKey(date, pascha);
+        if (specialDayKey != null) {
+            return buildSpecialLabel(specialDayKey, lang);
+        }
+
         DayOfWeek day = date.getDayOfWeek();
         LocalDate previousPascha = paschaDateCalculator.getPaschaDate(date.getYear() - 1);
         LocalDate pentecostSunday = pascha.plusDays(49);
@@ -135,6 +182,22 @@ public class LiturgicalLabelService {
         Optional<LiturgicalLabel> stored = labelRepository.findByDayKeyAndLang(dayKey, lang);
         if (stored.isPresent()) {
             return stored.get();
+        }
+
+        Optional<LiturgicalLabel> storedByLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
+        if (storedByLabelKey.isPresent()) {
+            return storedByLabelKey.get();
+        }
+
+        String specialText = getSpecialDayText(dayKey, lang);
+        if (specialText != null) {
+            return LiturgicalLabel.builder()
+                    .dayKey(dayKey)
+                    .labelKey(dayKey)
+                    .lang(lang)
+                    .text(specialText)
+                    .type("special")
+                    .build();
         }
 
         String text = getLabelForDayKey(dayKey, lang);
@@ -293,6 +356,117 @@ public class LiturgicalLabelService {
             return season + "_SUNDAY_" + parts.weekIndex();
         }
         return season + "_WEEKDAY_" + parts.weekIndex();
+    }
+
+    private String resolveSpecialMovableDayKey(LocalDate date, LocalDate pascha) {
+        if (date.equals(pascha.minusDays(57))) return DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE;
+        if (date.equals(pascha.minusDays(8))) return DAY_KEY_LAZARUS_SATURDAY;
+        if (date.equals(pascha.minusDays(7))) return DAY_KEY_PALM_SUNDAY;
+        if (date.equals(pascha.minusDays(6))) return DAY_KEY_HOLY_MONDAY;
+        if (date.equals(pascha.minusDays(5))) return DAY_KEY_HOLY_TUESDAY;
+        if (date.equals(pascha.minusDays(4))) return DAY_KEY_HOLY_WEDNESDAY;
+        if (date.equals(pascha.minusDays(3))) return DAY_KEY_HOLY_THURSDAY;
+        if (date.equals(pascha.minusDays(2))) return DAY_KEY_HOLY_FRIDAY;
+        if (date.equals(pascha.minusDays(1))) return DAY_KEY_HOLY_SATURDAY;
+        if (date.equals(pascha)) return DAY_KEY_PASCHA_SUNDAY;
+        if (date.equals(pascha.plusDays(6))) return DAY_KEY_RENEWAL_SATURDAY;
+        if (date.equals(pascha.plusDays(7))) return DAY_KEY_THOMAS_SUNDAY;
+        if (date.equals(pascha.plusDays(24))) return DAY_KEY_MID_PENTECOST;
+        if (date.equals(pascha.plusDays(39))) return DAY_KEY_ASCENSION;
+        if (date.equals(pascha.plusDays(49))) return DAY_KEY_PENTECOST_SUNDAY;
+        if (date.equals(pascha.plusDays(50))) return DAY_KEY_MONDAY_OF_HOLY_SPIRIT;
+        if (date.equals(pascha.plusDays(56))) return DAY_KEY_ALL_SAINTS_SUNDAY;
+        return null;
+    }
+
+    private Optional<LiturgicalLabel> buildSpecialLabel(String dayKey, String lang) {
+        Optional<LiturgicalLabel> byDayKey = labelRepository.findByDayKeyAndLang(dayKey, lang);
+        if (byDayKey.isPresent()) {
+            return byDayKey;
+        }
+
+        Optional<LiturgicalLabel> byLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
+        if (byLabelKey.isPresent()) {
+            return byLabelKey;
+        }
+
+        String text = getSpecialDayText(dayKey, lang);
+        if (text == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(
+                LiturgicalLabel.builder()
+                        .dayKey(dayKey)
+                        .labelKey(dayKey)
+                        .lang(lang)
+                        .text(text)
+                        .type("special")
+                        .build()
+        );
+    }
+
+    private String getSpecialDayText(String dayKey, String lang) {
+        boolean ar = (lang == null || lang.isBlank() || lang.equalsIgnoreCase("ar"));
+
+        switch (dayKey) {
+            case DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE:
+                return ar ? "سبت النفوس قبل مرفع اللحم" : "Saturday of Souls before Meatfare";
+            case DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST:
+                return ar ? "سبت النفوس قبل العنصرة" : "Saturday of Souls before Pentecost";
+            case DAY_KEY_LAZARUS_SATURDAY:
+                return ar ? "سبت لعازر" : "Lazarus Saturday";
+            case DAY_KEY_PALM_SUNDAY:
+                return ar ? "أحد الشعانين" : "Palm Sunday";
+            case DAY_KEY_HOLY_MONDAY:
+                return ar ? "الإثنين العظيم المقدس" : "Holy Monday";
+            case DAY_KEY_HOLY_TUESDAY:
+                return ar ? "الثلاثاء العظيم المقدس" : "Holy Tuesday";
+            case DAY_KEY_HOLY_WEDNESDAY:
+                return ar ? "الأربعاء العظيم المقدس" : "Holy Wednesday";
+            case DAY_KEY_HOLY_THURSDAY:
+                return ar ? "الخميس العظيم المقدس" : "Holy Thursday";
+            case DAY_KEY_HOLY_FRIDAY:
+                return ar ? "الجمعة العظيمة المقدسة" : "Holy Friday";
+            case DAY_KEY_HOLY_SATURDAY:
+                return ar ? "السبت العظيم المقدس" : "Holy Saturday";
+            case DAY_KEY_PASCHA_SUNDAY:
+                return ar ? "أحد الفصح" : "Pascha Sunday";
+            case DAY_KEY_RENEWAL_SATURDAY:
+                return ar ? "سبت التجديدات" : "Renewal Saturday";
+            case DAY_KEY_THOMAS_SUNDAY:
+                return ar ? "أحد توما" : "Thomas Sunday";
+            case DAY_KEY_MID_PENTECOST:
+                return ar ? "نصف الخمسين" : "Mid-Pentecost";
+            case DAY_KEY_ASCENSION:
+                return ar ? "عيد الصعود" : "Ascension";
+            case DAY_KEY_PENTECOST_SUNDAY:
+                return ar ? "أحد العنصرة" : "Pentecost Sunday";
+            case DAY_KEY_MONDAY_OF_HOLY_SPIRIT:
+                return ar ? "إثنين الروح القدس" : "Monday of the Holy Spirit";
+            case DAY_KEY_ALL_SAINTS_SUNDAY:
+                return ar ? "أحد جميع القديسين" : "All Saints Sunday";
+            case DAY_KEY_FATHERS_1ST_ECUMENICAL_COUNCIL_SUNDAY:
+                return ar ? "أحد آباء المجمع المسكوني الأول" : "Sunday of the Fathers of the First Ecumenical Council";
+            case DAY_KEY_FATHERS_4TH_ECUMENICAL_COUNCIL_SUNDAY:
+                return ar ? "أحد آباء المجمع المسكوني الرابع" : "Sunday of the Fathers of the Fourth Ecumenical Council";
+            case DAY_KEY_FATHERS_7TH_ECUMENICAL_COUNCIL_SUNDAY:
+                return ar ? "أحد آباء المجمع المسكوني السابع" : "Sunday of the Fathers of the Seventh Ecumenical Council";
+            case DAY_KEY_FOREFATHERS_SUNDAY:
+                return ar ? "أحد الآباء الأولين" : "Forefathers Sunday";
+            case DAY_KEY_HOLY_ANCESTORS_SUNDAY:
+                return ar ? "أحد الأجداد القديسين" : "Holy Ancestors Sunday";
+            case DAY_KEY_SUNDAY_BEFORE_NATIVITY:
+                return ar ? "الأحد السابق للميلاد" : "Sunday before Nativity";
+            case DAY_KEY_SUNDAY_AFTER_NATIVITY:
+                return ar ? "الأحد اللاحق للميلاد" : "Sunday after Nativity";
+            case DAY_KEY_SUNDAY_BEFORE_THEOPHANY:
+                return ar ? "الأحد السابق للظهور الإلهي" : "Sunday before Theophany";
+            case DAY_KEY_SUNDAY_AFTER_THEOPHANY:
+                return ar ? "الأحد اللاحق للظهور الإلهي" : "Sunday after Theophany";
+            default:
+                return null;
+        }
     }
 
     private record DayKeyParts(String season, String dayOfWeek, int weekIndex) {

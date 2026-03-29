@@ -1,6 +1,7 @@
 package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
+import at.antiochorthodox.liturgy.dto.ReadingDayKeyResolution;
 import at.antiochorthodox.liturgy.model.LiturgicalDayReadingMap;
 import at.antiochorthodox.liturgy.repository.LiturgicalDayReadingMapRepository;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
@@ -18,15 +19,18 @@ public class LiturgicalDayContextService {
     private final LiturgicalLabelService liturgicalLabelService;
     private final LiturgicalDayReadingMapRepository mapRepository;
     private final PaschaDateCalculator paschaDateCalculator;
+    private final ReadingDayKeyResolver readingDayKeyResolver;
 
     public LiturgicalDayContextService(
             LiturgicalLabelService liturgicalLabelService,
             LiturgicalDayReadingMapRepository mapRepository,
-            PaschaDateCalculator paschaDateCalculator
+            PaschaDateCalculator paschaDateCalculator,
+            ReadingDayKeyResolver readingDayKeyResolver
     ) {
         this.liturgicalLabelService = liturgicalLabelService;
         this.mapRepository = mapRepository;
         this.paschaDateCalculator = paschaDateCalculator;
+        this.readingDayKeyResolver = readingDayKeyResolver;
     }
 
     public LiturgicalDayContext resolveForDate(LocalDate date, String lang) {
@@ -35,13 +39,28 @@ public class LiturgicalDayContextService {
 
     public LiturgicalDayContext resolveForDate(LocalDate date, String lang, String slot) {
         LocalDate pascha = paschaDateCalculator.getPaschaDate(date.getYear());
-        String dayKey = liturgicalLabelService.getDayKeyForDate(date, pascha, lang);
 
-        if (!hasText(dayKey)) {
+        String calendarDayKey = liturgicalLabelService.getDayKeyForDate(date, pascha, lang);
+
+        ReadingDayKeyResolution resolution =
+                readingDayKeyResolver.resolve(calendarDayKey, date, slot);
+
+        String resolvedDayKey = resolution.getResolvedDayKey();
+
+        if (!hasText(resolvedDayKey)) {
             return null;
         }
 
-        return resolveByDayKey(dayKey, lang, slot);
+        LiturgicalDayContext context = resolveByDayKey(resolvedDayKey, lang, slot);
+        if (context == null) {
+            return null;
+        }
+
+        // أبقهما فقط إذا أضفتهما إلى LiturgicalDayContext
+        context.setCalendarDayKey(calendarDayKey);
+        context.setReadingDayKey(resolvedDayKey);
+
+        return context;
     }
 
     public LiturgicalDayContext resolveByDayKey(String dayKey, String lang) {
