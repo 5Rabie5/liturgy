@@ -1,18 +1,26 @@
 package at.antiochorthodox.liturgy.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class LiturgicalDayContext {
+
+    private String tradition;
+
+    private String dayKey;
     private String calendarDayKey;
     private String readingDayKey;
-    private String dayKey;
+
     private String dayLabel;
     private String slot;
     private String sourceType;
+
     private String epistleKey;
     private String gospelKey;
 }
