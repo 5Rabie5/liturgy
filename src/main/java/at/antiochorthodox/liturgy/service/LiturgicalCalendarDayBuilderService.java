@@ -1,9 +1,11 @@
 package at.antiochorthodox.liturgy.service;
 
-import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
+import at.antiochorthodox.liturgy.reading.legacy.dto.LiturgicalDayContext;
 import at.antiochorthodox.liturgy.dto.MarriageAllowedResponse;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
-import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
+import at.antiochorthodox.liturgy.reading.legacy.model.LiturgicalCalendarReadings;
+import at.antiochorthodox.liturgy.reading.legacy.service.LiturgicalDayContextService;
+import at.antiochorthodox.liturgy.reading.legacy.service.LiturgicalDayReadingsService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

@@ -1,5 +1,6 @@
 package at.antiochorthodox.liturgy.model;
 
+import at.antiochorthodox.liturgy.reading.legacy.model.LiturgicalCalendarReadings;
 import lombok.*;
 import java.time.LocalDate;
 import java.util.List;

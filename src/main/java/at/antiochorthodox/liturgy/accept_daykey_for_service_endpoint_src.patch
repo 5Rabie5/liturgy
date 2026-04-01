@@ -1,0 +1,98 @@
+--- src/main/java/at/antiochorthodox/liturgy/reading/v2/service/LiturgicalReadingAssignmentServiceImpl.java	2026-04-01 03:40:15.433349481 +0000
++++ src/main/java/at/antiochorthodox/liturgy/reading/v2/service/LiturgicalReadingAssignmentServiceImpl.java	2026-04-01 03:40:17.084915925 +0000
+@@ -42,13 +42,77 @@
+     @Override
+     public List<LiturgicalReadingAssignment> findAssignmentsForService(ReadingContext context, String serviceKey) {
+         String tradition = resolveTradition(context);
+-        String dayKey = resolveReadingDayKey(context);
++        String readingDayKey = resolveReadingDayKey(context);
++        String calendarDayKey = context != null ? context.getCalendarDayKey() : null;
+ 
+-        return assignmentRepository.findByTraditionAndDayKeyAndServiceKeyOrderBySequenceAsc(
+-                tradition,
+-                dayKey,
+-                serviceKey
+-        );
++        List<LiturgicalReadingAssignment> exact =
++                assignmentRepository.findByTraditionAndDayKeyAndServiceKeyOrderBySequenceAsc(
++                        tradition,
++                        readingDayKey,
++                        serviceKey
++                );
++
++        if (!exact.isEmpty()) {
++            return exact;
++        }
++
++        if (hasText(calendarDayKey) && !calendarDayKey.equals(readingDayKey)) {
++            exact = assignmentRepository.findByTraditionAndDayKeyAndServiceKeyOrderBySequenceAsc(
++                    tradition,
++                    calendarDayKey,
++                    serviceKey
++            );
++
++            if (!exact.isEmpty()) {
++                return exact;
++            }
++        }
++
++        if (matchesDayKeyAlias(serviceKey, readingDayKey, calendarDayKey)) {
++            List<LiturgicalReadingAssignment> dayAssignments = findDayAssignments(tradition, readingDayKey, calendarDayKey);
++            if (hasSingleService(dayAssignments)) {
++                return dayAssignments;
++            }
++        }
++
++        return List.of();
++    }
++
++
++    private List<LiturgicalReadingAssignment> findDayAssignments(String tradition, String readingDayKey, String calendarDayKey) {
++        List<LiturgicalReadingAssignment> assignments =
++                assignmentRepository.findByTraditionAndDayKeyOrderByServiceKeyAscSequenceAsc(
++                        tradition,
++                        readingDayKey
++                );
++
++        if (!assignments.isEmpty()) {
++            return assignments;
++        }
++
++        if (hasText(calendarDayKey) && !calendarDayKey.equals(readingDayKey)) {
++            return assignmentRepository.findByTraditionAndDayKeyOrderByServiceKeyAscSequenceAsc(
++                    tradition,
++                    calendarDayKey
++            );
++        }
++
++        return List.of();
++    }
++
++    private boolean hasSingleService(List<LiturgicalReadingAssignment> assignments) {
++        return assignments.stream()
++                .map(LiturgicalReadingAssignment::getServiceKey)
++                .filter(this::hasText)
++                .distinct()
++                .limit(2)
++                .count() == 1;
++    }
++
++    private boolean matchesDayKeyAlias(String requestedKey, String readingDayKey, String calendarDayKey) {
++        return hasText(requestedKey)
++                && (requestedKey.equals(readingDayKey)
++                || requestedKey.equals(calendarDayKey));
+     }
+ 
+     private String resolveTradition(ReadingContext context) {
+@@ -58,6 +122,11 @@
+         return context.getTradition();
+     }
+ 
++
++    private boolean hasText(String value) {
++        return value != null && !value.isBlank();
++    }
++
+     private String resolveReadingDayKey(ReadingContext context) {
+         if (context == null) {
+             throw new IllegalArgumentException("ReadingContext must not be null");
