@@ -1,0 +1,51 @@
+Updated / added files in this package
+=====================================
+
+New canonical v2 entry point:
+- reading/v2/service/ReadingQueryService.java
+- reading/v2/service/ReadingQueryServiceImpl.java
+
+Compatibility alias retained:
+- reading/v2/service/V2ReadingQueryService.java
+- reading/v2/service/V2ReadingQueryServiceImpl.java
+
+V2 reading core:
+- reading/v2/controller/V2ReadingController.java
+- reading/v2/dto/ReadingContext.java
+- reading/v2/service/AssignmentReadingDayKeyResolver.java
+- reading/v2/service/AssignmentReadingDayKeyResolverImpl.java
+- reading/v2/service/ReadingContextService.java
+- reading/v2/service/ReadingContextServiceImpl.java
+- reading/v2/service/LiturgicalReadingAssignmentQueryService.java
+- reading/v2/service/LiturgicalReadingAssignmentQueryServiceImpl.java
+- reading/v2/service/ServiceReadingsAssembler.java
+- reading/v2/service/ServiceReadingsAssemblerImpl.java
+
+Compatibility layer clarified:
+- controller/ScriptureReadingController.java
+- service/ScriptureReadingService.java
+- service/LiturgicalDayContextService.java
+- service/LiturgicalDayReadingsService.java
+- service/LiturgicalReadingAssignmentService.java
+- service/LiturgicalReadingAssignmentServiceImpl.java
+
+Project notes:
+- README_architecture_update.md
+- ARCHITECTURE_TRANSITION_GUIDE.md
+- LEGACY_SURFACE_LIST.txt
+- UPDATED_FILES_LIST.txt
+reading/v2/summary/SundayReadingSummary.java
+reading/v2/summary/SundayReadingSummarySelector.java
+service/LiturgicalCalendarDayBuilderService.java
+
+- dto/ReadingDayKeyResolution.java
+- service/ReadingDayKeyResolver.java
+- service/ReadingDayKeyResolverImpl.java
+- service/LiturgicalDayContextService.java
+- reading/v2/dto/ReadingContext.java
+- reading/v2/service/AssignmentReadingDayKeyResolver.java
+- reading/v2/service/AssignmentReadingDayKeyResolverImpl.java
+- reading/v2/service/ReadingContextServiceImpl.java
+- reading/v2/service/LiturgicalReadingAssignmentQueryServiceImpl.java
+- service/LiturgicalReadingAssignmentServiceImpl.java
+- RESOLVER_ALIAS_UPDATE.md

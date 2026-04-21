@@ -1,18 +1,16 @@
-package at.antiochorthodox.liturgy.reading.v2.service;
+package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.dto.ReadingDayKeyResolution;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-@Component
-public class AssignmentReadingDayKeyResolverImpl implements AssignmentReadingDayKeyResolver {
+@Service
+public class ReadingDayKeyResolverImpl implements ReadingDayKeyResolver {
 
     private static final Map<String, String> LEGACY_TO_CANONICAL = Map.of(
-            "TRIODION_PHARISEE_PUBLICAN_SUNDAY", "TRIODION_W00_SUNDAY",
-            "TRIODION_PRODIGAL_SON_SUNDAY", "TRIODION_W01_SUNDAY",
             "GREAT_LENT_W01_SUNDAY", "TRIODION_W04_SUNDAY",
             "GREAT_LENT_W02_SUNDAY", "TRIODION_W05_SUNDAY",
             "GREAT_LENT_W03_SUNDAY", "TRIODION_W06_SUNDAY",
@@ -21,14 +19,13 @@ public class AssignmentReadingDayKeyResolverImpl implements AssignmentReadingDay
     );
 
     private static final Map<String, List<String>> LOOKUP_KEYS = Map.of(
-            "TRIODION_W00_SUNDAY", List.of("TRIODION_W00_SUNDAY", "TRIODION_PHARISEE_PUBLICAN_SUNDAY"),
-            "TRIODION_W01_SUNDAY", List.of("TRIODION_W01_SUNDAY", "TRIODION_PRODIGAL_SON_SUNDAY"),
             "TRIODION_W04_SUNDAY", List.of("TRIODION_W04_SUNDAY", "GREAT_LENT_W01_SUNDAY"),
             "TRIODION_W05_SUNDAY", List.of("TRIODION_W05_SUNDAY", "GREAT_LENT_W02_SUNDAY"),
             "TRIODION_W06_SUNDAY", List.of("TRIODION_W06_SUNDAY", "GREAT_LENT_W03_SUNDAY"),
             "TRIODION_W07_SUNDAY", List.of("TRIODION_W07_SUNDAY", "GREAT_LENT_W04_SUNDAY"),
             "TRIODION_W08_SUNDAY", List.of("TRIODION_W08_SUNDAY", "GREAT_LENT_W05_SUNDAY")
     );
+
     @Override
     public ReadingDayKeyResolution resolve(String calendarDayKey, LocalDate date, String slot) {
         String canonicalDayKey = canonicalize(calendarDayKey);
@@ -38,7 +35,9 @@ public class AssignmentReadingDayKeyResolverImpl implements AssignmentReadingDay
                 .calendarDayKey(calendarDayKey)
                 .canonicalDayKey(canonicalDayKey)
                 .resolvedDayKey(canonicalDayKey)
-                .reason(canonicalDayKey == null ? "No calendarDayKey resolved" : "Resolved with canonical alias mapping")
+                .reason(canonicalDayKey == null
+                        ? "No calendarDayKey resolved"
+                        : "Resolved with canonical alias mapping")
                 .lookupDayKeys(lookupDayKeys)
                 .triedKeys(lookupDayKeys)
                 .build();
@@ -50,16 +49,20 @@ public class AssignmentReadingDayKeyResolverImpl implements AssignmentReadingDay
     }
 
     private String canonicalize(String dayKey) {
-        if (dayKey == null || dayKey.isBlank()) {
+        if (!hasText(dayKey)) {
             return null;
         }
         return LEGACY_TO_CANONICAL.getOrDefault(dayKey, dayKey);
     }
 
     private List<String> buildLookupDayKeys(String canonicalDayKey) {
-        if (canonicalDayKey == null || canonicalDayKey.isBlank()) {
+        if (!hasText(canonicalDayKey)) {
             return List.of();
         }
         return LOOKUP_KEYS.getOrDefault(canonicalDayKey, List.of(canonicalDayKey));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

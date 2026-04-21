@@ -1,24 +1,26 @@
-package at.antiochorthodox.liturgy.reading.v2.dto;
+package at.antiochorthodox.liturgy.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReadingContext {
+public class LiturgicalDayContext {
 
     private String tradition;
 
+    private String dayKey;
     private String calendarDayKey;
     private String readingDayKey;
 
-    private String dayKey;
     private String dayLabel;
-    private List<String> lookupDayKeys;
+    private String slot;
+    private String sourceType;
+
+    private String epistleKey;
+    private String gospelKey;
 }

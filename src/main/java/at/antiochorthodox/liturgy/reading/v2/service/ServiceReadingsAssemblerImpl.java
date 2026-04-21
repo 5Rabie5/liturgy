@@ -1,8 +1,8 @@
 package at.antiochorthodox.liturgy.reading.v2.service;
 
-import at.antiochorthodox.liturgy.reading.v2.dto.ReadingAssignmentItemDto;
-import at.antiochorthodox.liturgy.reading.v2.dto.ServiceReadingsDto;
-import at.antiochorthodox.liturgy.reading.v2.model.LiturgicalReadingAssignment;
+import at.antiochorthodox.liturgy.dto.ReadingAssignmentItemDto;
+import at.antiochorthodox.liturgy.dto.ServiceReadingsDto;
+import at.antiochorthodox.liturgy.model.LiturgicalReadingAssignment;
 import at.antiochorthodox.liturgy.repository.EpistleReadingRepository;
 import at.antiochorthodox.liturgy.repository.GospelReadingRepository;
 import lombok.RequiredArgsConstructor;

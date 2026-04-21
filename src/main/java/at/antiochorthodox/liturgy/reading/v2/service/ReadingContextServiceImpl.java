@@ -1,7 +1,7 @@
 package at.antiochorthodox.liturgy.reading.v2.service;
 
-import at.antiochorthodox.liturgy.reading.v2.dto.ReadingContext;
 import at.antiochorthodox.liturgy.dto.ReadingDayKeyResolution;
+import at.antiochorthodox.liturgy.reading.v2.dto.ReadingContext;
 import at.antiochorthodox.liturgy.service.LiturgicalLabelService;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import lombok.RequiredArgsConstructor;
@@ -36,20 +36,23 @@ public class ReadingContextServiceImpl implements ReadingContextService {
         ReadingDayKeyResolution resolution =
                 readingDayKeyResolver.resolve(calendarDayKey, date, slot);
 
+        String canonicalDayKey = resolution != null ? resolution.getCanonicalDayKey() : null;
         String readingDayKey = resolution != null ? resolution.getResolvedDayKey() : null;
         if (!hasText(readingDayKey)) {
             return null;
         }
 
-        String dayLabel = liturgicalLabelService.getLabelForDayKey(readingDayKey, lang);
+        String outwardDayKey = hasText(canonicalDayKey) ? canonicalDayKey : readingDayKey;
+        String dayLabel = liturgicalLabelService.getLabelForDayKey(outwardDayKey, lang);
         String resolvedTradition = hasText(tradition) ? tradition : DEFAULT_TRADITION;
 
         return ReadingContext.builder()
                 .tradition(resolvedTradition)
                 .calendarDayKey(calendarDayKey)
                 .readingDayKey(readingDayKey)
-                .dayKey(readingDayKey)
-                .dayLabel(hasText(dayLabel) ? dayLabel : readingDayKey)
+                .dayKey(outwardDayKey)
+                .dayLabel(hasText(dayLabel) ? dayLabel : outwardDayKey)
+                .lookupDayKeys(resolution != null ? resolution.getLookupDayKeys() : null)
                 .build();
     }
 

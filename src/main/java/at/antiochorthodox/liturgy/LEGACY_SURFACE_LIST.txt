@@ -1,0 +1,21 @@
+Legacy / compatibility surfaces intentionally retained
+====================================================
+
+Preferred canonical entry point:
+- reading/v2/service/ReadingQueryService
+- reading/v2/controller/V2ReadingController
+
+Compatibility layers still present:
+- controller/ScriptureReadingController.java
+- service/ScriptureReadingService.java
+- service/ScriptureReadingServiceImpl.java
+- service/LiturgicalDayContextService.java
+- service/LiturgicalDayReadingsService.java
+- service/LiturgicalReadingAssignmentService.java
+- service/LiturgicalReadingAssignmentServiceImpl.java
+- reading/v2/service/V2ReadingQueryService.java
+- reading/v2/service/V2ReadingQueryServiceImpl.java
+
+Reason:
+These classes keep old endpoints and old call sites working while the project
+moves gradually toward the assignment-based reading core.
