@@ -36,11 +36,12 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
     @Override
     public List<ScriptureReading> getReadingsByDateAndType(LocalDate date, String slot, String type, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang, slot);
+        String normalizedLang = normalizeLang(lang);
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, normalizedLang, slot);
         if (context == null) {
             return List.of();
         }
-        return getReadingsByResolvedContext(context, type, lang);
+        return getReadingsByResolvedContext(context, type, normalizedLang);
     }
 
     @Override
@@ -50,11 +51,12 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
 
     @Override
     public List<ScriptureReading> getReadingsByDayKey(String dayKey, String slot, String type, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveByDayKey(dayKey, lang, slot);
+        String normalizedLang = normalizeLang(lang);
+        LiturgicalDayContext context = liturgicalDayContextService.resolveByDayKey(dayKey, normalizedLang, slot);
         if (context == null) {
             return List.of();
         }
-        return getReadingsByResolvedContext(context, type, lang);
+        return getReadingsByResolvedContext(context, type, normalizedLang);
     }
 
     @Override
@@ -63,6 +65,7 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
             return List.of();
         }
 
+        String normalizedLang = normalizeLang(lang);
         String t = normalizeType(type);
         boolean needEpistle = "any".equals(t) || "epistle".equals(t);
         boolean needGospel = "any".equals(t) || "gospel".equals(t);
@@ -70,13 +73,13 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
         List<ScriptureReading> result = new ArrayList<>();
 
         if (needEpistle) {
-            for (EpistleReading e : epistleRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
+            for (EpistleReading e : epistleRepo.findByLiturgicalNameAndLang(liturgicalName, normalizedLang)) {
                 result.add(toDto(e, null, null, null));
             }
         }
 
         if (needGospel) {
-            for (GospelReading g : gospelRepo.findByLiturgicalNameAndLang(liturgicalName, lang)) {
+            for (GospelReading g : gospelRepo.findByLiturgicalNameAndLang(liturgicalName, normalizedLang)) {
                 result.add(toDto(g, null, null, null));
             }
         }
@@ -208,6 +211,19 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
         }
 
         return result;
+    }
+
+    private String normalizeLang(String lang) {
+        if (lang == null || lang.isBlank()) {
+            return "ar";
+        }
+
+        String cleaned = lang.trim().toLowerCase().replaceAll("[^a-z_]", "");
+        if (cleaned.isBlank()) {
+            return "ar";
+        }
+
+        return cleaned;
     }
 
     private String normalizeType(String type) {

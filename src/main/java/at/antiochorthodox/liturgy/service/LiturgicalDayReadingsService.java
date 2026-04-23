@@ -38,13 +38,15 @@ public class LiturgicalDayReadingsService {
     }
 
     public LiturgicalCalendarReadings buildGroupedReadingsForDate(LocalDate date, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
+        String normalizedLang = normalizeLang(lang);
 
-        List<String> saints = saintService.findNamesByLangAndDate(lang, date);
-        String fixedFeast = feastService.findFixedFeastNameByLangAndDate(lang, date);
-        String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, normalizedLang);
 
-        return buildGroupedReadings(context, fixedFeast, movableFeast, saints, lang);
+        List<String> saints = saintService.findNamesByLangAndDate(normalizedLang, date);
+        String fixedFeast = feastService.findFixedFeastNameByLangAndDate(normalizedLang, date);
+        String movableFeast = feastService.findMovableFeastNameByLangAndDate(normalizedLang, date);
+
+        return buildGroupedReadings(context, fixedFeast, movableFeast, saints, normalizedLang);
     }
 
     public LiturgicalCalendarReadings buildGroupedReadings(
@@ -54,11 +56,12 @@ public class LiturgicalDayReadingsService {
             List<String> saints,
             String lang
     ) {
+        String normalizedLang = normalizeLang(lang);
         ReadingGroup liturgicalGroup = null;
 
         if (context != null && context.getDayKey() != null && !context.getDayKey().isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByDayKey(context.getDayKey(), "any", lang);
+                    scriptureReadingService.getReadingsByDayKey(context.getDayKey(), "any", normalizedLang);
 
             liturgicalGroup = ReadingGroup.builder()
                     .key(context.getDayKey())
@@ -71,7 +74,7 @@ public class LiturgicalDayReadingsService {
         ReadingGroup fixedGroup = null;
         if (fixedFeast != null && !fixedFeast.isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", lang);
+                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", normalizedLang);
 
             fixedGroup = ReadingGroup.builder()
                     .key(fixedFeast)
@@ -83,7 +86,7 @@ public class LiturgicalDayReadingsService {
         ReadingGroup movableGroup = null;
         if (movableFeast != null && !movableFeast.isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", lang);
+                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", normalizedLang);
 
             movableGroup = ReadingGroup.builder()
                     .key(movableFeast)
@@ -101,7 +104,7 @@ public class LiturgicalDayReadingsService {
 
                 String key = "عيد القديس " + saint;
                 List<ScriptureReading> readings =
-                        scriptureReadingService.getReadingsByLegacyName(key, "any", lang);
+                        scriptureReadingService.getReadingsByLegacyName(key, "any", normalizedLang);
 
                 if (readings == null || readings.isEmpty()) {
                     continue;
@@ -135,10 +138,11 @@ public class LiturgicalDayReadingsService {
             List<String> saints,
             String lang
     ) {
+        String normalizedLang = normalizeLang(lang);
         ReadingGroup liturgicalGroup = null;
         if (liturgicalName != null && !liturgicalName.isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByLegacyName(liturgicalName, "any", lang);
+                    scriptureReadingService.getReadingsByLegacyName(liturgicalName, "any", normalizedLang);
 
             liturgicalGroup = ReadingGroup.builder()
                     .key(liturgicalName)
@@ -150,7 +154,7 @@ public class LiturgicalDayReadingsService {
         ReadingGroup fixedGroup = null;
         if (fixedFeast != null && !fixedFeast.isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", lang);
+                    scriptureReadingService.getReadingsByLegacyName(fixedFeast, "any", normalizedLang);
 
             fixedGroup = ReadingGroup.builder()
                     .key(fixedFeast)
@@ -162,7 +166,7 @@ public class LiturgicalDayReadingsService {
         ReadingGroup movableGroup = null;
         if (movableFeast != null && !movableFeast.isBlank()) {
             List<ScriptureReading> readings =
-                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", lang);
+                    scriptureReadingService.getReadingsByLegacyName(movableFeast, "any", normalizedLang);
 
             movableGroup = ReadingGroup.builder()
                     .key(movableFeast)
@@ -180,7 +184,7 @@ public class LiturgicalDayReadingsService {
 
                 String key = "عيد القديس " + saint;
                 List<ScriptureReading> readings =
-                        scriptureReadingService.getReadingsByLegacyName(key, "any", lang);
+                        scriptureReadingService.getReadingsByLegacyName(key, "any", normalizedLang);
 
                 if (readings == null || readings.isEmpty()) {
                     continue;
@@ -202,4 +206,17 @@ public class LiturgicalDayReadingsService {
                 .saints(saintGroups)
                 .build();
     }
+    private String normalizeLang(String lang) {
+        if (lang == null || lang.isBlank()) {
+            return "ar";
+        }
+
+        String cleaned = lang.trim().toLowerCase().replaceAll("[^a-z_]", "");
+        if (cleaned.isBlank()) {
+            return "ar";
+        }
+
+        return cleaned;
+    }
+
 }

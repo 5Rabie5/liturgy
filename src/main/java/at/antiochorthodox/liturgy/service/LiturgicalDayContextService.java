@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -116,34 +118,22 @@ public class LiturgicalDayContextService {
     ) {
         String normalizedSlot = normalizeSlot(slot);
 
-        List<String> effectiveLookupKeys = new ArrayList<>();
-        if (lookupDayKeys != null) {
-            effectiveLookupKeys.addAll(
-                    lookupDayKeys.stream()
-                            .filter(this::hasText)
-                            .distinct()
-                            .toList()
-            );
-        }
-
-        if (effectiveLookupKeys.isEmpty() && hasText(canonicalDayKey)) {
-            effectiveLookupKeys.add(canonicalDayKey);
-        }
-
+        List<String> effectiveLookupKeys = buildEffectiveLookupKeys(canonicalDayKey, lookupDayKeys);
         if (effectiveLookupKeys.isEmpty()) {
             return null;
         }
 
-        List<LiturgicalReadingAssignment> assignments = loadAssignmentsForAnyKey(effectiveLookupKeys, normalizedSlot);
+        List<LiturgicalReadingAssignment> assignments =
+                loadMergedAssignments(effectiveLookupKeys, normalizedSlot);
 
         if (assignments.isEmpty() && hasText(normalizedSlot) && !LITURGY_SLOT.equals(normalizedSlot)) {
-            assignments = loadAssignmentsForAnyKey(effectiveLookupKeys, LITURGY_SLOT);
+            assignments = loadMergedAssignments(effectiveLookupKeys, LITURGY_SLOT);
         }
         if (assignments.isEmpty() && hasText(normalizedSlot) && !DEFAULT_SLOT.equals(normalizedSlot)) {
-            assignments = loadAssignmentsForAnyKey(effectiveLookupKeys, DEFAULT_SLOT);
+            assignments = loadMergedAssignments(effectiveLookupKeys, DEFAULT_SLOT);
         }
         if (assignments.isEmpty()) {
-            assignments = loadAssignmentsForAnyKey(effectiveLookupKeys, null);
+            assignments = loadMergedAssignments(effectiveLookupKeys, null);
         }
         if (assignments.isEmpty()) {
             return null;
@@ -172,19 +162,62 @@ public class LiturgicalDayContextService {
                 .build();
     }
 
-    private List<LiturgicalReadingAssignment> loadAssignmentsForAnyKey(List<String> dayKeys, String slot) {
+    private List<String> buildEffectiveLookupKeys(String canonicalDayKey, List<String> lookupDayKeys) {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+
+        if (hasText(canonicalDayKey)) {
+            keys.add(canonicalDayKey);
+        }
+
+        if (lookupDayKeys != null) {
+            lookupDayKeys.stream()
+                    .filter(this::hasText)
+                    .forEach(keys::add);
+        }
+
+        return new ArrayList<>(keys);
+    }
+
+    private List<LiturgicalReadingAssignment> loadMergedAssignments(List<String> dayKeys, String slot) {
         if (dayKeys == null || dayKeys.isEmpty()) {
             return List.of();
         }
 
+        List<LiturgicalReadingAssignment> merged = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+
         for (String dayKey : dayKeys) {
             List<LiturgicalReadingAssignment> assignments = loadAssignments(dayKey, slot);
-            if (!assignments.isEmpty()) {
-                return assignments;
+            for (LiturgicalReadingAssignment assignment : assignments) {
+                String identity = buildAssignmentIdentity(assignment);
+                if (seen.add(identity)) {
+                    merged.add(assignment);
+                }
             }
         }
 
-        return List.of();
+        return merged;
+    }
+
+    private String buildAssignmentIdentity(LiturgicalReadingAssignment assignment) {
+        if (assignment == null) {
+            return "";
+        }
+
+        return String.join("|",
+                nullSafe(assignment.getTradition()),
+                nullSafe(assignment.getDayKey()),
+                nullSafe(assignment.getSlot()),
+                nullSafe(assignment.getServiceKey()),
+                nullSafe(assignment.getSourceType()),
+                nullSafe(assignment.getReadingType()),
+                nullSafe(assignment.getReadingKey()),
+                String.valueOf(assignment.getSequence())
+        );
+    }
+
+    private String nullSafe(String value) {
+        return value == null ? "" : value;
     }
 
     private List<LiturgicalReadingAssignment> loadAssignments(String dayKey, String slot) {

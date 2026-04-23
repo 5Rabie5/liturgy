@@ -1,0 +1,14 @@
+package at.antiochorthodox.liturgy.model;
+
+public enum YearAuditIssueType {
+    OK,
+    EXPECTED_NO_LITURGY,
+    SPECIAL_MOVABLE_UNRESOLVED,
+    FEAST_PRESENT_BUT_NOT_BOUND,
+    PARTIAL_READING_ONLY,
+    SLOT_MISMATCH,
+    TRUE_MISSING_ASSIGNMENT,
+    MISSING_DAY_KEY,
+    MISSING_EPISTLE,
+    MISSING_GOSPEL
+}

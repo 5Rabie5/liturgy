@@ -11,6 +11,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class LiturgicalLabelService {
@@ -45,6 +47,10 @@ public class LiturgicalLabelService {
     public static final String DAY_KEY_SUNDAY_AFTER_NATIVITY = "SUNDAY_AFTER_NATIVITY";
     public static final String DAY_KEY_SUNDAY_BEFORE_THEOPHANY = "SUNDAY_BEFORE_THEOPHANY";
     public static final String DAY_KEY_SUNDAY_AFTER_THEOPHANY = "SUNDAY_AFTER_THEOPHANY";
+
+    private static final String DEFAULT_LABEL_LANG = "ar";
+    private static final String SECONDARY_FALLBACK_LANG = "en";
+    private static final Pattern LANGUAGE_TOKEN_PATTERN = Pattern.compile("([A-Za-z]{2,8})");
 
     private final LiturgicalLabelRepository labelRepository;
     private final FeastService feastService;
@@ -84,37 +90,30 @@ public class LiturgicalLabelService {
             return null;
         }
 
-        Optional<LiturgicalLabel> byStoredDayKey = labelRepository.findByDayKeyAndLang(dayKey, lang);
-        if (byStoredDayKey.isPresent()) {
-            return byStoredDayKey.get().getText();
-        }
-
-        Optional<LiturgicalLabel> byStoredLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
-        if (byStoredLabelKey.isPresent()) {
-            return byStoredLabelKey.get().getText();
-        }
-
-        String specialText = getSpecialDayText(dayKey, lang);
-        if (specialText != null) {
-            return specialText;
+        String normalizedLang = normalizeLang(lang);
+        Optional<LiturgicalLabel> storedLabel = findLabelByAnyKey(dayKey, normalizedLang);
+        if (storedLabel.isPresent()) {
+            return storedLabel.get().getText();
         }
 
         DayKeyParts parts = parseDayKey(dayKey);
-        if (parts == null) {
-            return null;
+        if (parts != null) {
+            Optional<LiturgicalLabel> seasonalLabel = parts.isSunday()
+                    ? findSundayLabel(parts.season(), parts.weekIndex(), normalizedLang)
+                    : findDayLabel(parts.season(), parts.weekIndex(), parts.dayOfWeek(), normalizedLang);
+            if (seasonalLabel.isPresent()) {
+                return seasonalLabel.get().getText();
+            }
         }
 
-        Optional<LiturgicalLabel> labelOpt = parts.isSunday()
-                ? findSundayLabel(parts.season(), parts.weekIndex(), lang)
-                : findDayLabel(parts.season(), parts.weekIndex(), parts.dayOfWeek(), lang);
-
-        return labelOpt.map(LiturgicalLabel::getText).orElse(null);
+        return buildNeutralDisplayText(dayKey);
     }
 
     public Optional<LiturgicalLabel> resolveLabelEntityForDate(LocalDate date, LocalDate pascha, String lang) {
+        String normalizedLang = normalizeLang(lang);
         String specialDayKey = resolveSpecialMovableDayKey(date, pascha);
         if (specialDayKey != null) {
-            return buildSpecialLabel(specialDayKey, lang);
+            return buildSpecialLabel(specialDayKey, normalizedLang);
         }
 
         DayOfWeek day = date.getDayOfWeek();
@@ -125,33 +124,33 @@ public class LiturgicalLabelService {
         boolean isInTriodion = !date.isBefore(triodionStart) && date.isBefore(pascha);
         boolean isInPascha = !date.isBefore(pascha) && date.isBefore(pentecostSunday);
 
-        Optional<LiturgicalLabel> specialLabel = findSpecialLabelForDate(date, pascha, pentecostSunday, lang);
+        Optional<LiturgicalLabel> specialLabel = findSpecialLabelForDate(date, pascha, pentecostSunday, normalizedLang);
         if (specialLabel.isPresent()) {
             return specialLabel;
         }
 
         if (date.equals(pentecostSunday) && day == DayOfWeek.SUNDAY) {
-            return findSundayLabel("pentecost", 0, lang);
+            return findSundayLabel("pentecost", 0, normalizedLang);
         }
 
         // Legacy fallback only. In the Antiochian workflow this day should normally be handled
         // by SATURDAY_OF_SOULS_BEFORE_PENTECOST above.
         if (date.equals(pentecostSunday.minusDays(1)) && day == DayOfWeek.SATURDAY) {
-            return findDayLabel("pentecost", 0, "saturday", lang);
+            return findDayLabel("pentecost", 0, "saturday", normalizedLang);
         }
 
         if (isInTriodion) {
             int weekIndex = (int) ChronoUnit.WEEKS.between(triodionStart, date);
             return day == DayOfWeek.SUNDAY
-                    ? findSundayLabel("triodion", weekIndex, lang)
-                    : findDayLabel("triodion", weekIndex, day.name().toLowerCase(Locale.ROOT), lang);
+                    ? findSundayLabel("triodion", weekIndex, normalizedLang)
+                    : findDayLabel("triodion", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
         }
 
         if (isInPascha) {
             int weekIndex = (int) ChronoUnit.WEEKS.between(pascha, date);
             return day == DayOfWeek.SUNDAY
-                    ? findSundayLabel("pascha", weekIndex, lang)
-                    : findDayLabel("pascha", weekIndex, day.name().toLowerCase(Locale.ROOT), lang);
+                    ? findSundayLabel("pascha", weekIndex, normalizedLang)
+                    : findDayLabel("pascha", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
         }
 
         // Intentionally do not replace the liturgical day with a movable feast here.
@@ -160,65 +159,49 @@ public class LiturgicalLabelService {
         if (!date.isBefore(pentecostSunday.plusDays(1))) {
             int weekIndex = countSundaysBetween(pentecostSunday, date);
             return day == DayOfWeek.SUNDAY
-                    ? findSundayLabel("pentecost", weekIndex, lang)
-                    : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), lang);
+                    ? findSundayLabel("pentecost", weekIndex, normalizedLang)
+                    : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
         }
 
         int weekIndex = countSundaysBetween(previousPascha.plusDays(49), date);
         return day == DayOfWeek.SUNDAY
-                ? findSundayLabel("pentecost", weekIndex, lang)
-                : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), lang);
+                ? findSundayLabel("pentecost", weekIndex, normalizedLang)
+                : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
     }
 
     public List<LiturgicalLabel> getLabelsByLang(String lang) {
-        return labelRepository.findByLang(lang);
+        return labelRepository.findByLang(normalizeLang(lang));
     }
 
     public LiturgicalLabel getLabelByKeyAndLang(String key, String lang) {
-        return labelRepository.findByLabelKeyAndLang(key, lang).orElse(null);
+        return findLabelByLabelKeyOnly(key, normalizeLang(lang)).orElse(null);
     }
 
     public LiturgicalLabel getLabelByDayKeyAndLang(String dayKey, String lang) {
-        Optional<LiturgicalLabel> stored = labelRepository.findByDayKeyAndLang(dayKey, lang);
+        String normalizedLang = normalizeLang(lang);
+        Optional<LiturgicalLabel> stored = findLabelByAnyKey(dayKey, normalizedLang);
         if (stored.isPresent()) {
             return stored.get();
         }
 
-        Optional<LiturgicalLabel> storedByLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
-        if (storedByLabelKey.isPresent()) {
-            return storedByLabelKey.get();
-        }
-
-        String specialText = getSpecialDayText(dayKey, lang);
-        if (specialText != null) {
-            return LiturgicalLabel.builder()
-                    .dayKey(dayKey)
-                    .labelKey(dayKey)
-                    .lang(lang)
-                    .text(specialText)
-                    .type("special")
-                    .build();
-        }
-
-        String text = getLabelForDayKey(dayKey, lang);
+        String text = getLabelForDayKey(dayKey, normalizedLang);
         if (text == null) {
             return null;
         }
 
         DayKeyParts parts = parseDayKey(dayKey);
-        if (parts == null) {
-            return null;
-        }
+        String type = parts == null ? "special" : (parts.isSunday() ? "sunday" : "weekday");
+        String labelKey = parts == null ? dayKey : buildLegacyLabelKey(parts);
 
         return LiturgicalLabel.builder()
                 .dayKey(dayKey)
-                .labelKey(buildLegacyLabelKey(parts))
-                .lang(lang)
+                .labelKey(labelKey)
+                .lang(normalizedLang)
                 .text(text)
-                .type(parts.isSunday() ? "sunday" : "weekday")
-                .season(parts.season())
-                .weekIndex(parts.weekIndex())
-                .dayOfWeek(!parts.isSunday() ? parts.dayOfWeek() : null)
+                .type(type)
+                .season(parts != null ? parts.season() : null)
+                .weekIndex(parts != null ? parts.weekIndex() : null)
+                .dayOfWeek(parts != null && !parts.isSunday() ? parts.dayOfWeek() : null)
                 .build();
     }
 
@@ -229,6 +212,9 @@ public class LiturgicalLabelService {
     public LiturgicalLabel saveLabel(LiturgicalLabel label) {
         if (label.getDayKey() == null || label.getDayKey().isBlank()) {
             label.setDayKey(deriveDayKey(label));
+        }
+        if (label.getLang() != null) {
+            label.setLang(normalizeLang(label.getLang()));
         }
         return labelRepository.save(label);
     }
@@ -251,33 +237,67 @@ public class LiturgicalLabelService {
         // Meatfare Sunday = 8 weeks before Pascha, so the preceding Saturday = Pascha - 57 days.
         LocalDate meatfareSoulSaturday = pascha.minusDays(57);
         if (date.equals(meatfareSoulSaturday)) {
-            return labelRepository.findByDayKeyAndLang(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE, lang)
-                    .or(() -> labelRepository.findByLabelKeyAndLang(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE, lang));
+            return findLabelByAnyKey(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE, lang);
         }
 
         // Saturday of Souls before Pentecost.
         LocalDate pentecostSoulSaturday = pentecostSunday.minusDays(1);
         if (date.equals(pentecostSoulSaturday)) {
-            return labelRepository.findByDayKeyAndLang(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST, lang)
-                    .or(() -> labelRepository.findByLabelKeyAndLang(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST, lang));
+            return findLabelByAnyKey(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST, lang);
         }
 
         return Optional.empty();
     }
 
     private Optional<LiturgicalLabel> findDayLabel(String season, int weekIndex, String dayOfWeek, String lang) {
+        return findDayLabelExact(season, weekIndex, dayOfWeek, lang)
+                .or(() -> fallbackDayLabelLookup(season, weekIndex, dayOfWeek, lang));
+    }
+
+    private Optional<LiturgicalLabel> findSundayLabel(String season, int weekIndex, String lang) {
+        return findSundayLabelExact(season, weekIndex, lang)
+                .or(() -> fallbackSundayLabelLookup(season, weekIndex, lang));
+    }
+
+    private Optional<LiturgicalLabel> findDayLabelExact(String season, int weekIndex, String dayOfWeek, String lang) {
         return labelRepository.findByTypeAndSeasonAndWeekIndexAndDayOfWeekAndLang(
                 "weekday", season, weekIndex, dayOfWeek.toLowerCase(Locale.ROOT), lang
         );
     }
 
-    private Optional<LiturgicalLabel> findSundayLabel(String season, int weekIndex, String lang) {
+    private Optional<LiturgicalLabel> fallbackDayLabelLookup(String season, int weekIndex, String dayOfWeek, String requestedLang) {
+        if (!SECONDARY_FALLBACK_LANG.equals(requestedLang)) {
+            Optional<LiturgicalLabel> english = findDayLabelExact(season, weekIndex, dayOfWeek, SECONDARY_FALLBACK_LANG);
+            if (english.isPresent()) {
+                return english;
+            }
+        }
+        if (!DEFAULT_LABEL_LANG.equals(requestedLang)) {
+            return findDayLabelExact(season, weekIndex, dayOfWeek, DEFAULT_LABEL_LANG);
+        }
+        return Optional.empty();
+    }
+
+    private Optional<LiturgicalLabel> findSundayLabelExact(String season, int weekIndex, String lang) {
         Optional<LiturgicalLabel> label = labelRepository.findByTypeAndSeasonAndWeekIndexAndDayOfWeekIsNullAndLang(
                 "sunday", season, weekIndex, lang
         );
         return label.isPresent()
                 ? label
                 : labelRepository.findByTypeAndSeasonAndWeekIndexAndDayOfWeekAndLang("sunday", season, weekIndex, "", lang);
+    }
+
+    private Optional<LiturgicalLabel> fallbackSundayLabelLookup(String season, int weekIndex, String requestedLang) {
+        if (!SECONDARY_FALLBACK_LANG.equals(requestedLang)) {
+            Optional<LiturgicalLabel> english = findSundayLabelExact(season, weekIndex, SECONDARY_FALLBACK_LANG);
+            if (english.isPresent()) {
+                return english;
+            }
+        }
+        if (!DEFAULT_LABEL_LANG.equals(requestedLang)) {
+            return findSundayLabelExact(season, weekIndex, DEFAULT_LABEL_LANG);
+        }
+        return Optional.empty();
     }
 
     private int countSundaysBetween(LocalDate start, LocalDate end) {
@@ -380,19 +400,9 @@ public class LiturgicalLabelService {
     }
 
     private Optional<LiturgicalLabel> buildSpecialLabel(String dayKey, String lang) {
-        Optional<LiturgicalLabel> byDayKey = labelRepository.findByDayKeyAndLang(dayKey, lang);
-        if (byDayKey.isPresent()) {
-            return byDayKey;
-        }
-
-        Optional<LiturgicalLabel> byLabelKey = labelRepository.findByLabelKeyAndLang(dayKey, lang);
-        if (byLabelKey.isPresent()) {
-            return byLabelKey;
-        }
-
-        String text = getSpecialDayText(dayKey, lang);
-        if (text == null) {
-            return Optional.empty();
+        Optional<LiturgicalLabel> stored = findLabelByAnyKey(dayKey, lang);
+        if (stored.isPresent()) {
+            return stored;
         }
 
         return Optional.of(
@@ -400,73 +410,93 @@ public class LiturgicalLabelService {
                         .dayKey(dayKey)
                         .labelKey(dayKey)
                         .lang(lang)
-                        .text(text)
+                        .text(buildNeutralDisplayText(dayKey))
                         .type("special")
                         .build()
         );
     }
 
-    private String getSpecialDayText(String dayKey, String lang) {
-        boolean ar = (lang == null || lang.isBlank() || lang.equalsIgnoreCase("ar"));
-
-        switch (dayKey) {
-            case DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE:
-                return ar ? "سبت النفوس قبل مرفع اللحم" : "Saturday of Souls before Meatfare";
-            case DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST:
-                return ar ? "سبت النفوس قبل العنصرة" : "Saturday of Souls before Pentecost";
-            case DAY_KEY_LAZARUS_SATURDAY:
-                return ar ? "سبت لعازر" : "Lazarus Saturday";
-            case DAY_KEY_PALM_SUNDAY:
-                return ar ? "أحد الشعانين" : "Palm Sunday";
-            case DAY_KEY_HOLY_MONDAY:
-                return ar ? "الإثنين العظيم المقدس" : "Holy Monday";
-            case DAY_KEY_HOLY_TUESDAY:
-                return ar ? "الثلاثاء العظيم المقدس" : "Holy Tuesday";
-            case DAY_KEY_HOLY_WEDNESDAY:
-                return ar ? "الأربعاء العظيم المقدس" : "Holy Wednesday";
-            case DAY_KEY_HOLY_THURSDAY:
-                return ar ? "الخميس العظيم المقدس" : "Holy Thursday";
-            case DAY_KEY_HOLY_FRIDAY:
-                return ar ? "الجمعة العظيمة المقدسة" : "Holy Friday";
-            case DAY_KEY_HOLY_SATURDAY:
-                return ar ? "السبت العظيم المقدس" : "Holy Saturday";
-            case DAY_KEY_PASCHA_SUNDAY:
-                return ar ? "أحد الفصح" : "Pascha Sunday";
-            case DAY_KEY_RENEWAL_SATURDAY:
-                return ar ? "سبت التجديدات" : "Renewal Saturday";
-            case DAY_KEY_THOMAS_SUNDAY:
-                return ar ? "أحد توما" : "Thomas Sunday";
-            case DAY_KEY_MID_PENTECOST:
-                return ar ? "نصف الخمسين" : "Mid-Pentecost";
-            case DAY_KEY_ASCENSION:
-                return ar ? "عيد الصعود" : "Ascension";
-            case DAY_KEY_PENTECOST_SUNDAY:
-                return ar ? "أحد العنصرة" : "Pentecost Sunday";
-            case DAY_KEY_MONDAY_OF_HOLY_SPIRIT:
-                return ar ? "إثنين الروح القدس" : "Monday of the Holy Spirit";
-            case DAY_KEY_ALL_SAINTS_SUNDAY:
-                return ar ? "أحد جميع القديسين" : "All Saints Sunday";
-            case DAY_KEY_FATHERS_1ST_ECUMENICAL_COUNCIL_SUNDAY:
-                return ar ? "أحد آباء المجمع المسكوني الأول" : "Sunday of the Fathers of the First Ecumenical Council";
-            case DAY_KEY_FATHERS_4TH_ECUMENICAL_COUNCIL_SUNDAY:
-                return ar ? "أحد آباء المجمع المسكوني الرابع" : "Sunday of the Fathers of the Fourth Ecumenical Council";
-            case DAY_KEY_FATHERS_7TH_ECUMENICAL_COUNCIL_SUNDAY:
-                return ar ? "أحد آباء المجمع المسكوني السابع" : "Sunday of the Fathers of the Seventh Ecumenical Council";
-            case DAY_KEY_FOREFATHERS_SUNDAY:
-                return ar ? "أحد الآباء الأولين" : "Forefathers Sunday";
-            case DAY_KEY_HOLY_ANCESTORS_SUNDAY:
-                return ar ? "أحد الأجداد القديسين" : "Holy Ancestors Sunday";
-            case DAY_KEY_SUNDAY_BEFORE_NATIVITY:
-                return ar ? "الأحد السابق للميلاد" : "Sunday before Nativity";
-            case DAY_KEY_SUNDAY_AFTER_NATIVITY:
-                return ar ? "الأحد اللاحق للميلاد" : "Sunday after Nativity";
-            case DAY_KEY_SUNDAY_BEFORE_THEOPHANY:
-                return ar ? "الأحد السابق للظهور الإلهي" : "Sunday before Theophany";
-            case DAY_KEY_SUNDAY_AFTER_THEOPHANY:
-                return ar ? "الأحد اللاحق للظهور الإلهي" : "Sunday after Theophany";
-            default:
-                return null;
+    private Optional<LiturgicalLabel> findLabelByAnyKey(String dayKey, String requestedLang) {
+        Optional<LiturgicalLabel> exact = findLabelByAnyKeyExact(dayKey, requestedLang);
+        if (exact.isPresent()) {
+            return exact;
         }
+
+        if (!SECONDARY_FALLBACK_LANG.equals(requestedLang)) {
+            Optional<LiturgicalLabel> english = findLabelByAnyKeyExact(dayKey, SECONDARY_FALLBACK_LANG);
+            if (english.isPresent()) {
+                return english;
+            }
+        }
+
+        if (!DEFAULT_LABEL_LANG.equals(requestedLang)) {
+            Optional<LiturgicalLabel> defaultLang = findLabelByAnyKeyExact(dayKey, DEFAULT_LABEL_LANG);
+            if (defaultLang.isPresent()) {
+                return defaultLang;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<LiturgicalLabel> findLabelByAnyKeyExact(String key, String lang) {
+        Optional<LiturgicalLabel> byDayKey = labelRepository.findByDayKeyAndLang(key, lang);
+        return byDayKey.isPresent()
+                ? byDayKey
+                : labelRepository.findByLabelKeyAndLang(key, lang);
+    }
+
+    private Optional<LiturgicalLabel> findLabelByLabelKeyOnly(String key, String requestedLang) {
+        String normalizedLang = normalizeLang(requestedLang);
+        Optional<LiturgicalLabel> exact = labelRepository.findByLabelKeyAndLang(key, normalizedLang);
+        if (exact.isPresent()) {
+            return exact;
+        }
+        if (!SECONDARY_FALLBACK_LANG.equals(normalizedLang)) {
+            Optional<LiturgicalLabel> english = labelRepository.findByLabelKeyAndLang(key, SECONDARY_FALLBACK_LANG);
+            if (english.isPresent()) {
+                return english;
+            }
+        }
+        if (!DEFAULT_LABEL_LANG.equals(normalizedLang)) {
+            return labelRepository.findByLabelKeyAndLang(key, DEFAULT_LABEL_LANG);
+        }
+        return Optional.empty();
+    }
+
+    private String normalizeLang(String lang) {
+        if (lang == null || lang.isBlank()) {
+            return DEFAULT_LABEL_LANG;
+        }
+
+        Matcher matcher = LANGUAGE_TOKEN_PATTERN.matcher(lang.trim());
+        if (matcher.find()) {
+            return matcher.group(1).toLowerCase(Locale.ROOT);
+        }
+
+        return DEFAULT_LABEL_LANG;
+    }
+
+    private String buildNeutralDisplayText(String dayKey) {
+        if (dayKey == null || dayKey.isBlank()) {
+            return null;
+        }
+
+        String[] words = dayKey.toLowerCase(Locale.ROOT).split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String word : words) {
+            if (word.isBlank()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) {
+                builder.append(word.substring(1));
+            }
+        }
+        return builder.toString();
     }
 
     private record DayKeyParts(String season, String dayOfWeek, int weekIndex) {

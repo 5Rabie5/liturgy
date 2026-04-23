@@ -49,3 +49,13 @@ service/LiturgicalCalendarDayBuilderService.java
 - reading/v2/service/LiturgicalReadingAssignmentQueryServiceImpl.java
 - service/LiturgicalReadingAssignmentServiceImpl.java
 - RESOLVER_ALIAS_UPDATE.md
+
+2026-04-22 assignment-based special day alias update
+- service/ReadingDayKeyResolverImpl.java
+- reading/v2/service/AssignmentReadingDayKeyResolverImpl.java
+- service/LiturgicalCalendarDayBuilderService.java
+
+- service/LiturgicalCalendarDayBuilderService.java (normalize incoming lang before resolving labels/readings)
+- service/LiturgicalDayReadingsService.java (normalize incoming lang for grouped legacy responses)
+- service/ScriptureReadingServiceImpl.java (normalize incoming lang for date/dayKey/name lookups)
+- service/LiturgicalLabelService.java (removed hardcoded Arabic special labels; repository-first multilingual label resolution with neutral fallback)

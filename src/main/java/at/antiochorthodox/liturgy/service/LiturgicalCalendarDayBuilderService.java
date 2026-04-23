@@ -6,7 +6,6 @@ import at.antiochorthodox.liturgy.dto.ServiceReadingsDto;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
 import at.antiochorthodox.liturgy.model.ReadingGroup;
-import at.antiochorthodox.liturgy.model.ScriptureReading;
 import at.antiochorthodox.liturgy.reading.v2.service.ReadingQueryService;
 import at.antiochorthodox.liturgy.reading.v2.summary.SundayReadingSummary;
 import at.antiochorthodox.liturgy.reading.v2.summary.SundayReadingSummarySelector;
@@ -52,16 +51,23 @@ public class LiturgicalCalendarDayBuilderService {
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
-        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, lang);
+        String normalizedLang = normalizeLang(lang);
 
-        List<String> saints = saintService.findNamesByLangAndDate(lang, date);
-        String fixedFeast = feastService.findFixedFeastNameByLangAndDate(lang, date);
-        String movableFeast = feastService.findMovableFeastNameByLangAndDate(lang, date);
-        String fastingLevel = fastingService.getFastingEvelByLangAndDate(lang, date);
-        MarriageAllowedResponse marriageInfo = marriageAllowedService.isMarriageAllowed(date, lang);
+        LiturgicalDayContext context = liturgicalDayContextService.resolveForDate(date, normalizedLang);
 
-        LiturgicalCalendarReadings grouped =
-                liturgicalDayReadingsService.buildGroupedReadings(context, fixedFeast, movableFeast, saints, lang);
+        List<String> saints = saintService.findNamesByLangAndDate(normalizedLang, date);
+        String fixedFeast = feastService.findFixedFeastNameByLangAndDate(normalizedLang, date);
+        String movableFeast = feastService.findMovableFeastNameByLangAndDate(normalizedLang, date);
+        String fastingLevel = fastingService.getFastingEvelByLangAndDate(normalizedLang, date);
+        MarriageAllowedResponse marriageInfo = marriageAllowedService.isMarriageAllowed(date, normalizedLang);
+
+        LiturgicalCalendarReadings grouped = liturgicalDayReadingsService.buildGroupedReadings(
+                context,
+                fixedFeast,
+                movableFeast,
+                saints,
+                normalizedLang
+        );
 
         LiturgicalCalendarDay calendarDay = LiturgicalCalendarDay.builder()
                 .date(date)
@@ -75,14 +81,14 @@ public class LiturgicalCalendarDayBuilderService {
                 .fixedFeast(fixedFeast)
                 .movableFeast(movableFeast)
                 .fastingLevel(fastingLevel)
-                .lang(lang)
+                .lang(normalizedLang)
                 .marriageAllowed(marriageInfo.isAllowed())
                 .marriageNote(marriageInfo.getMessage())
                 .readings(grouped)
                 .build();
 
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            applySundayReadingSummaryFromV2OrFallback(date, lang, calendarDay);
+            applySundayReadingSummaryFromV2OrFallback(date, normalizedLang, calendarDay);
         }
 
         return calendarDay;
@@ -97,9 +103,7 @@ public class LiturgicalCalendarDayBuilderService {
 
         try {
             List<ServiceReadingsDto> services = readingQueryService.getByDate(date, lang, DEFAULT_TRADITION);
-            summary = sundayReadingSummarySelector
-                    .selectBestForSunday(services)
-                    .orElse(null);
+            summary = sundayReadingSummarySelector.selectBestForSunday(services).orElse(null);
         } catch (RuntimeException ignored) {
             // Fall back to legacy grouped readings when v2 resolution is unavailable.
         }
@@ -113,6 +117,19 @@ public class LiturgicalCalendarDayBuilderService {
         }
 
         applySummaryToCalendarDay(calendarDay, summary);
+    }
+
+    private String normalizeLang(String lang) {
+        if (lang == null || lang.isBlank()) {
+            return "ar";
+        }
+
+        String cleaned = lang.trim().toLowerCase().replaceAll("[^a-z_]", "");
+        if (cleaned.isBlank()) {
+            return "ar";
+        }
+
+        return cleaned;
     }
 
     private SundayReadingSummary fallbackSundaySummaryFromLegacyGroups(LiturgicalCalendarReadings readings) {
@@ -146,7 +163,7 @@ public class LiturgicalCalendarDayBuilderService {
         String epistleKey = group.getReadings().stream()
                 .filter(Objects::nonNull)
                 .filter(r -> "epistle".equalsIgnoreCase(r.getType()))
-                .map(ScriptureReading::getReadingKey)
+                .map(r -> r.getReadingKey())
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
@@ -154,7 +171,7 @@ public class LiturgicalCalendarDayBuilderService {
         String gospelKey = group.getReadings().stream()
                 .filter(Objects::nonNull)
                 .filter(r -> "gospel".equalsIgnoreCase(r.getType()))
-                .map(ScriptureReading::getReadingKey)
+                .map(r -> r.getReadingKey())
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
