@@ -53,6 +53,12 @@ public class YearAuditServiceImpl {
             LiturgicalLabelService.DAY_KEY_SUNDAY_AFTER_THEOPHANY
     );
 
+    private static final Set<String> INTENTIONAL_GOSPEL_ONLY_DAY_KEYS = Set.of(
+            LiturgicalLabelService.DAY_KEY_HOLY_MONDAY,
+            LiturgicalLabelService.DAY_KEY_HOLY_TUESDAY,
+            LiturgicalLabelService.DAY_KEY_HOLY_WEDNESDAY
+    );
+
     private final LiturgicalCalendarDayBuilderService liturgicalCalendarDayBuilderService;
     private final LiturgicalLabelService liturgicalLabelService;
     private final PaschaDateCalculator paschaDateCalculator;
@@ -129,6 +135,9 @@ public class YearAuditServiceImpl {
         boolean hasAnyReading = hasEpistle || hasGospel;
         boolean hasFeast = result != null && (hasText(result.getFixedFeast()) || hasText(result.getMovableFeast()));
         String normalizedSlot = normalizeSlot(result != null ? result.getReadingSlot() : null);
+        String effectiveDayKey = hasText(result != null ? result.getLiturgicalDayKey() : null)
+                ? result.getLiturgicalDayKey()
+                : calendarDayKey;
 
         if (!hasCalendarDayKey) {
             issues.add(YearAuditIssueType.MISSING_DAY_KEY);
@@ -142,6 +151,13 @@ public class YearAuditServiceImpl {
                 && !"liturgy".equals(normalizedSlot)
                 && !"default".equals(normalizedSlot)) {
             issues.add(YearAuditIssueType.SLOT_MISMATCH);
+        }
+
+        if (isIntentionalGospelOnlyDayResult(effectiveDayKey, normalizedSlot, hasEpistle, hasGospel)) {
+            if (issues.isEmpty()) {
+                issues.add(YearAuditIssueType.OK);
+            }
+            return new ArrayList<>(issues);
         }
 
         if (hasEpistle ^ hasGospel) {
@@ -171,6 +187,27 @@ public class YearAuditServiceImpl {
         return new ArrayList<>(issues);
     }
 
+    private boolean isIntentionalGospelOnlyDayResult(
+            String dayKey,
+            String slot,
+            boolean hasEpistle,
+            boolean hasGospel
+    ) {
+        if (!hasText(dayKey)) {
+            return false;
+        }
+
+        if (hasEpistle || !hasGospel) {
+            return false;
+        }
+
+        if (!INTENTIONAL_GOSPEL_ONLY_DAY_KEYS.contains(dayKey)) {
+            return false;
+        }
+
+        return "default".equals(slot) || "liturgy".equals(slot) || !hasText(slot);
+    }
+
     private boolean shouldBeExpectedNoLiturgy(LocalDate date, String calendarDayKey, LiturgicalCalendarDay result) {
         if (date == null) {
             return false;
@@ -194,6 +231,18 @@ public class YearAuditServiceImpl {
     private String buildNote(List<YearAuditIssueType> issueTypes, String calendarDayKey, LiturgicalCalendarDay result) {
         if (issueTypes == null || issueTypes.isEmpty()) {
             return null;
+        }
+
+        String effectiveDayKey = hasText(result != null ? result.getLiturgicalDayKey() : null)
+                ? result.getLiturgicalDayKey()
+                : calendarDayKey;
+
+        boolean hasEpistle = result != null && hasText(result.getEpistleKey());
+        boolean hasGospel = result != null && hasText(result.getGospelKey());
+        String normalizedSlot = normalizeSlot(result != null ? result.getReadingSlot() : null);
+
+        if (isIntentionalGospelOnlyDayResult(effectiveDayKey, normalizedSlot, hasEpistle, hasGospel)) {
+            return "Intentional gospel-only Holy Week day-result.";
         }
 
         if (issueTypes.size() == 1 && issueTypes.contains(YearAuditIssueType.OK)) {
