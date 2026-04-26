@@ -119,6 +119,7 @@ public class LiturgicalLabelService {
         DayOfWeek day = date.getDayOfWeek();
         LocalDate previousPascha = paschaDateCalculator.getPaschaDate(date.getYear() - 1);
         LocalDate pentecostSunday = pascha.plusDays(49);
+        LocalDate previousPentecostSunday = previousPascha.plusDays(49);
         LocalDate triodionStart = pascha.minusWeeks(10);
 
         boolean isInTriodion = !date.isBefore(triodionStart) && date.isBefore(pascha);
@@ -130,7 +131,7 @@ public class LiturgicalLabelService {
         }
 
         if (date.equals(pentecostSunday) && day == DayOfWeek.SUNDAY) {
-            return findSundayLabel("pentecost", 0, normalizedLang);
+            return resolvePentecostSundayLabel(0, normalizedLang);
         }
 
         // Legacy fallback only. In the Antiochian workflow this day should normally be handled
@@ -153,19 +154,19 @@ public class LiturgicalLabelService {
                     : findDayLabel("pascha", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
         }
 
-        // Intentionally do not replace the liturgical day with a movable feast here.
-        // Movable feasts are handled separately by FeastService.
-
+        // Outside Triodion/Pascha:
+        // - dates after this year's Pentecost continue from this year's Pentecost cycle
+        // - dates before this year's Triodion continue from the previous year's Pentecost cycle
         if (!date.isBefore(pentecostSunday.plusDays(1))) {
             int weekIndex = countSundaysBetween(pentecostSunday, date);
             return day == DayOfWeek.SUNDAY
-                    ? findSundayLabel("pentecost", weekIndex, normalizedLang)
+                    ? resolvePentecostSundayLabel(weekIndex, normalizedLang)
                     : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
         }
 
-        int weekIndex = countSundaysBetween(previousPascha.plusDays(49), date);
+        int weekIndex = countSundaysBetween(previousPentecostSunday, date);
         return day == DayOfWeek.SUNDAY
-                ? findSundayLabel("pentecost", weekIndex, normalizedLang)
+                ? resolvePentecostSundayLabel(weekIndex, normalizedLang)
                 : findDayLabel("pentecost", weekIndex, day.name().toLowerCase(Locale.ROOT), normalizedLang);
     }
 
@@ -233,14 +234,11 @@ public class LiturgicalLabelService {
             return Optional.empty();
         }
 
-        // Saturday of Souls before Meatfare Sunday.
-        // Meatfare Sunday = 8 weeks before Pascha, so the preceding Saturday = Pascha - 57 days.
         LocalDate meatfareSoulSaturday = pascha.minusDays(57);
         if (date.equals(meatfareSoulSaturday)) {
             return findLabelByAnyKey(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_MEATFARE, lang);
         }
 
-        // Saturday of Souls before Pentecost.
         LocalDate pentecostSoulSaturday = pentecostSunday.minusDays(1);
         if (date.equals(pentecostSoulSaturday)) {
             return findLabelByAnyKey(DAY_KEY_SATURDAY_OF_SOULS_BEFORE_PENTECOST, lang);
@@ -257,6 +255,13 @@ public class LiturgicalLabelService {
     private Optional<LiturgicalLabel> findSundayLabel(String season, int weekIndex, String lang) {
         return findSundayLabelExact(season, weekIndex, lang)
                 .or(() -> fallbackSundayLabelLookup(season, weekIndex, lang));
+    }
+
+    private Optional<LiturgicalLabel> resolvePentecostSundayLabel(int weekIndex, String lang) {
+        if (weekIndex < 0) {
+            return Optional.empty();
+        }
+        return findSundayLabel("pentecost", weekIndex, lang);
     }
 
     private Optional<LiturgicalLabel> findDayLabelExact(String season, int weekIndex, String dayOfWeek, String lang) {
