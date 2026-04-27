@@ -3,6 +3,7 @@ package at.antiochorthodox.liturgy.service;
 import at.antiochorthodox.liturgy.dto.LiturgicalDayContext;
 import at.antiochorthodox.liturgy.dto.MarriageAllowedResponse;
 import at.antiochorthodox.liturgy.dto.ServiceReadingsDto;
+import at.antiochorthodox.liturgy.dto.TransitionalSundayResolution;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarReadings;
 import at.antiochorthodox.liturgy.model.ReadingGroup;
@@ -20,6 +21,8 @@ import java.util.Objects;
 public class LiturgicalCalendarDayBuilderService {
 
     private static final String DEFAULT_TRADITION = "ANTIOCHIAN";
+    private static final String DEFAULT_SLOT = "liturgy";
+    private static final String DEFAULT_SOURCE_TYPE = "day";
 
     private final SaintService saintService;
     private final FeastService feastService;
@@ -29,6 +32,7 @@ public class LiturgicalCalendarDayBuilderService {
     private final LiturgicalDayContextService liturgicalDayContextService;
     private final ReadingQueryService readingQueryService;
     private final SundayReadingSummarySelector sundayReadingSummarySelector;
+    private final TransitionalSundayResolverService transitionalSundayResolverService;
 
     public LiturgicalCalendarDayBuilderService(
             SaintService saintService,
@@ -38,7 +42,8 @@ public class LiturgicalCalendarDayBuilderService {
             LiturgicalDayReadingsService liturgicalDayReadingsService,
             LiturgicalDayContextService liturgicalDayContextService,
             ReadingQueryService readingQueryService,
-            SundayReadingSummarySelector sundayReadingSummarySelector
+            SundayReadingSummarySelector sundayReadingSummarySelector,
+            TransitionalSundayResolverService transitionalSundayResolverService
     ) {
         this.saintService = saintService;
         this.feastService = feastService;
@@ -48,6 +53,7 @@ public class LiturgicalCalendarDayBuilderService {
         this.liturgicalDayContextService = liturgicalDayContextService;
         this.readingQueryService = readingQueryService;
         this.sundayReadingSummarySelector = sundayReadingSummarySelector;
+        this.transitionalSundayResolverService = transitionalSundayResolverService;
     }
 
     public LiturgicalCalendarDay buildLiturgicalDay(LocalDate date, String lang) {
@@ -89,9 +95,92 @@ public class LiturgicalCalendarDayBuilderService {
 
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             applySundayReadingSummaryFromV2OrFallback(date, normalizedLang, calendarDay);
+            applyTransitionalSundayResolution(date, normalizedLang, calendarDay);
         }
 
         return calendarDay;
+    }
+
+    private void applyTransitionalSundayResolution(
+            LocalDate date,
+            String lang,
+            LiturgicalCalendarDay calendarDay
+    ) {
+        TransitionalSundayResolution transitional = transitionalSundayResolverService.resolve(date, lang, calendarDay);
+
+        if (!transitional.isInWindow()) {
+            return;
+        }
+
+        calendarDay.setEpistleKey(transitional.getEffectiveEpistleKey());
+        calendarDay.setGospelKey(transitional.getEffectiveGospelKey());
+
+        if (hasText(transitional.getEffectiveDayKey())) {
+            calendarDay.setLiturgicalDayKey(transitional.getEffectiveDayKey());
+        }
+        if (hasText(transitional.getEffectiveLiturgicalName())) {
+            calendarDay.setLiturgicalName(transitional.getEffectiveLiturgicalName());
+        }
+
+        if (transitional.isOverrideApplied() && !hasText(calendarDay.getReadingSlot())) {
+            calendarDay.setReadingSlot(DEFAULT_SLOT);
+        }
+        if (transitional.isOverrideApplied() && !hasText(calendarDay.getReadingSourceType())) {
+            calendarDay.setReadingSourceType(DEFAULT_SOURCE_TYPE);
+        }
+
+        calendarDay.setDecisionBasis(transitional.getDecisionBasis());
+        calendarDay.setSourceReference(transitional.getSourceReference());
+
+        if (hasText(transitional.getNote())) {
+            calendarDay.setDesc(!hasText(calendarDay.getDesc())
+                    ? transitional.getNote()
+                    : calendarDay.getDesc() + " | " + transitional.getNote());
+        }
+
+        if (shouldRebuildGroupedReadingsForTransitional(calendarDay, transitional)) {
+            LiturgicalDayContext transitionalContext = LiturgicalDayContext.builder()
+                    .tradition(DEFAULT_TRADITION)
+                    .dayKey(calendarDay.getLiturgicalDayKey())
+                    .calendarDayKey(calendarDay.getLiturgicalDayKey())
+                    .readingDayKey(calendarDay.getLiturgicalDayKey())
+                    .dayLabel(calendarDay.getLiturgicalName())
+                    .slot(hasText(calendarDay.getReadingSlot()) ? calendarDay.getReadingSlot() : DEFAULT_SLOT)
+                    .sourceType(hasText(calendarDay.getReadingSourceType()) ? calendarDay.getReadingSourceType() : DEFAULT_SOURCE_TYPE)
+                    .epistleKey(calendarDay.getEpistleKey())
+                    .gospelKey(calendarDay.getGospelKey())
+                    .build();
+
+            LiturgicalCalendarReadings rebuilt =
+                    liturgicalDayReadingsService.buildGroupedReadingsFromExplicitLiturgicalKeys(
+                            transitionalContext,
+                            calendarDay.getFixedFeast(),
+                            calendarDay.getMovableFeast(),
+                            calendarDay.getSaints(),
+                            lang
+                    );
+
+            calendarDay.setReadings(rebuilt);
+        }
+    }
+
+    private boolean shouldRebuildGroupedReadingsForTransitional(
+            LiturgicalCalendarDay calendarDay,
+            TransitionalSundayResolution transitional
+    ) {
+        if (calendarDay == null || transitional == null) {
+            return false;
+        }
+
+        if (!transitional.isOverrideApplied()) {
+            return false;
+        }
+
+        if (!hasText(calendarDay.getEpistleKey()) && !hasText(calendarDay.getGospelKey())) {
+            return false;
+        }
+
+        return true;
     }
 
     private void applySundayReadingSummaryFromV2OrFallback(
@@ -188,5 +277,9 @@ public class LiturgicalCalendarDayBuilderService {
         calendarDay.setReadingSourceType(summary.sourceType());
         calendarDay.setEpistleKey(summary.epistleKey());
         calendarDay.setGospelKey(summary.gospelKey());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

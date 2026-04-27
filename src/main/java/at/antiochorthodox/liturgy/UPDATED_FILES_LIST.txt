@@ -59,3 +59,12 @@ service/LiturgicalCalendarDayBuilderService.java
 - service/LiturgicalDayReadingsService.java (normalize incoming lang for grouped legacy responses)
 - service/ScriptureReadingServiceImpl.java (normalize incoming lang for date/dayKey/name lookups)
 - service/LiturgicalLabelService.java (removed hardcoded Arabic special labels; repository-first multilingual label resolution with neutral fallback)
+
+TRANSITIONAL_SUNDAY_OVERRIDE_FEATURE.md
+model/TransitionalSundayOverride.java
+repository/TransitionalSundayOverrideRepository.java
+dto/TransitionalSundayResolution.java
+service/TransitionalSundayResolverService.java
+service/TransitionalSundayResolverServiceImpl.java
+service/LiturgicalCalendarDayBuilderService.java
+model/LiturgicalCalendarDay.java

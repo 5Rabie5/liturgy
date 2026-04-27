@@ -18,6 +18,13 @@ public interface ScriptureReadingService {
     List<ScriptureReading> getReadingsByDayKey(String dayKey, String type, String lang);
     List<ScriptureReading> getReadingsByDayKey(String dayKey, String slot, String type, String lang);
     List<ScriptureReading> getReadingsByLiturgicalName(String liturgicalName, String type, String lang);
+
+    /**
+     * Direct lookup by readingKey.
+     * Used when a transitional override explicitly selects epistle/gospel keys.
+     */
+    ScriptureReading getReadingByKey(String readingKey, String lang);
+
     ScriptureReading saveReading(ScriptureReading reading);
     List<ScriptureReading> saveReadings(List<ScriptureReading> readings);
 

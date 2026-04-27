@@ -88,6 +88,27 @@ public class ScriptureReadingServiceImpl implements ScriptureReadingService {
     }
 
     @Override
+    public ScriptureReading getReadingByKey(String readingKey, String lang) {
+        if (!hasText(readingKey)) {
+            return null;
+        }
+
+        String normalizedLang = normalizeLang(lang);
+
+        List<EpistleReading> epistles = epistleRepo.findByReadingKeyAndLang(readingKey, normalizedLang);
+        if (epistles != null && !epistles.isEmpty()) {
+            return toDto(epistles.get(0), null, null, null);
+        }
+
+        List<GospelReading> gospels = gospelRepo.findByReadingKeyAndLang(readingKey, normalizedLang);
+        if (gospels != null && !gospels.isEmpty()) {
+            return toDto(gospels.get(0), null, null, null);
+        }
+
+        return null;
+    }
+
+    @Override
     public ScriptureReading saveReading(ScriptureReading reading) {
         String resolvedReadingKey = firstNonBlank(reading.getReadingKey(), reading.getLiturgicalName());
         if (resolvedReadingKey == null) {

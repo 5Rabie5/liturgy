@@ -30,6 +30,8 @@ public class LiturgicalCalendarDay {
     private String fastingLevel;
     private String lang;
     private String desc;
+    private String decisionBasis;
+    private String sourceReference;
     private Boolean marriageAllowed;
     private String marriageNote;
 
