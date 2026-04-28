@@ -2,13 +2,17 @@ package at.antiochorthodox.liturgy.service;
 
 import at.antiochorthodox.liturgy.dto.TransitionalSundayResolution;
 import at.antiochorthodox.liturgy.model.LiturgicalCalendarDay;
+import at.antiochorthodox.liturgy.model.LiturgicalReadingAssignment;
 import at.antiochorthodox.liturgy.model.TransitionalSundayOverride;
+import at.antiochorthodox.liturgy.repository.LiturgicalReadingAssignmentRepository;
 import at.antiochorthodox.liturgy.repository.TransitionalSundayOverrideRepository;
 import at.antiochorthodox.liturgy.util.PaschaDateCalculator;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -18,15 +22,24 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
     private static final String TRADITION = "ANTIOCHIAN";
     private static final String DEFAULT_SLOT = "liturgy";
 
+    private static final String READING_TYPE_EPISTLE = "epistle";
+    private static final String READING_TYPE_GOSPEL = "gospel";
+
+    private static final String THEOPHANY_AFTER_SUNDAY_DAY_KEY = "THEOPHANY_AFTER_SUNDAY";
+    private static final String THEOPHANY_AFTER_SUNDAY_NAME_AR = "الأحد الذي بعد عيد الظهور الإلهي";
+
     private final TransitionalSundayOverrideRepository overrideRepository;
     private final PaschaDateCalculator paschaDateCalculator;
+    private final LiturgicalReadingAssignmentRepository assignmentRepository;
 
     public TransitionalSundayResolverServiceImpl(
             TransitionalSundayOverrideRepository overrideRepository,
-            PaschaDateCalculator paschaDateCalculator
+            PaschaDateCalculator paschaDateCalculator,
+            LiturgicalReadingAssignmentRepository assignmentRepository
     ) {
         this.overrideRepository = overrideRepository;
         this.paschaDateCalculator = paschaDateCalculator;
+        this.assignmentRepository = assignmentRepository;
     }
 
     @Override
@@ -63,6 +76,31 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
         String baseLiturgicalName = baseDay != null ? baseDay.getLiturgicalName() : null;
         String baseEpistleKey = baseDay != null ? baseDay.getEpistleKey() : null;
         String baseGospelKey = baseDay != null ? baseDay.getGospelKey() : null;
+
+        if (isSundayAfterTheophany(date)) {
+            String epistleKey = firstNonBlank(
+                    findAssignmentReadingKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY, READING_TYPE_EPISTLE),
+                    baseEpistleKey
+            );
+
+            String gospelKey = firstNonBlank(
+                    findAssignmentReadingKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY, READING_TYPE_GOSPEL),
+                    baseGospelKey
+            );
+
+            return TransitionalSundayResolution.builder()
+                    .inWindow(true)
+                    .overrideApplied(false)
+                    .effectiveDayKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY)
+                    .effectiveReadingDayKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY)
+                    .effectiveLiturgicalName(THEOPHANY_AFTER_SUNDAY_NAME_AR)
+                    .effectiveEpistleKey(epistleKey)
+                    .effectiveGospelKey(gospelKey)
+                    .decisionBasis("SPECIAL_MOVABLE_FEAST")
+                    .sourceReference(THEOPHANY_AFTER_SUNDAY_DAY_KEY)
+                    .note("Sunday after Theophany resolved before transitional Sunday fallback.")
+                    .build();
+        }
 
         Optional<TransitionalSundayOverride> overrideOpt = findOverride(date);
 
@@ -118,6 +156,38 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
                 .filter(override -> override.getDate() != null && override.getDate().equals(date))
                 .filter(override -> matchesSlot(override.getSlot()))
                 .findFirst();
+    }
+
+    private String findAssignmentReadingKey(String dayKey, String readingType) {
+        if (!hasText(dayKey) || !hasText(readingType)) {
+            return null;
+        }
+
+        List<LiturgicalReadingAssignment> assignments =
+                assignmentRepository.findByTraditionAndDayKeyAndSlotOrderByServiceKeyAscSequenceAsc(
+                        TRADITION,
+                        dayKey,
+                        DEFAULT_SLOT
+                );
+
+        return assignments.stream()
+                .filter(Objects::nonNull)
+                .filter(assignment -> readingType.equalsIgnoreCase(assignment.getReadingType()))
+                .map(LiturgicalReadingAssignment::getReadingKey)
+                .filter(this::hasText)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isSundayAfterTheophany(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        LocalDate theophany = LocalDate.of(date.getYear(), 1, 6);
+        LocalDate sundayAfterTheophany = theophany.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+
+        return date.equals(sundayAfterTheophany);
     }
 
     private boolean matchesSlot(String slot) {
