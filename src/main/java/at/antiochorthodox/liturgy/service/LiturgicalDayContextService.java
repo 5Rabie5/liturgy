@@ -35,17 +35,20 @@ public class LiturgicalDayContextService {
     private final LiturgicalReadingAssignmentRepository assignmentRepository;
     private final PaschaDateCalculator paschaDateCalculator;
     private final ReadingDayKeyResolver readingDayKeyResolver;
+    private final AnnualGuideReadingRuleService annualGuideReadingRuleService;
 
     public LiturgicalDayContextService(
             LiturgicalLabelService liturgicalLabelService,
             LiturgicalReadingAssignmentRepository assignmentRepository,
             PaschaDateCalculator paschaDateCalculator,
-            ReadingDayKeyResolver readingDayKeyResolver
+            ReadingDayKeyResolver readingDayKeyResolver,
+            AnnualGuideReadingRuleService annualGuideReadingRuleService
     ) {
         this.liturgicalLabelService = liturgicalLabelService;
         this.assignmentRepository = assignmentRepository;
         this.paschaDateCalculator = paschaDateCalculator;
         this.readingDayKeyResolver = readingDayKeyResolver;
+        this.annualGuideReadingRuleService = annualGuideReadingRuleService;
     }
 
     public LiturgicalDayContext resolveForDate(LocalDate date, String lang) {
@@ -79,7 +82,7 @@ public class LiturgicalDayContextService {
             return null;
         }
 
-        LiturgicalDayContext context = resolveByLookupDayKeys(canonicalDayKey, lookupDayKeys, lang, slot);
+        LiturgicalDayContext context = resolveByLookupDayKeys(date, canonicalDayKey, lookupDayKeys, lang, slot);
         if (context == null) {
             return null;
         }
@@ -107,10 +110,11 @@ public class LiturgicalDayContextService {
         }
 
         List<String> lookupDayKeys = readingDayKeyResolver.resolveLookupDayKeys(dayKey, null, slot);
-        return resolveByLookupDayKeys(dayKey, lookupDayKeys, lang, slot);
+        return resolveByLookupDayKeys(null, dayKey, lookupDayKeys, lang, slot);
     }
 
     private LiturgicalDayContext resolveByLookupDayKeys(
+            LocalDate date,
             String canonicalDayKey,
             List<String> lookupDayKeys,
             String lang,
@@ -135,6 +139,15 @@ public class LiturgicalDayContextService {
         if (assignments.isEmpty()) {
             assignments = loadMergedAssignments(effectiveLookupKeys, null);
         }
+        if (!assignments.isEmpty()) {
+            assignments = mergeAnnualGuideFallbackAssignments(
+                    date,
+                    canonicalDayKey,
+                    assignments,
+                    normalizedSlot
+            );
+        }
+
         if (assignments.isEmpty()) {
             return null;
         }
@@ -160,6 +173,54 @@ public class LiturgicalDayContextService {
                 .epistleKey(findReadingKey(assignments, "epistle"))
                 .gospelKey(findReadingKey(assignments, "gospel"))
                 .build();
+    }
+
+
+    private List<LiturgicalReadingAssignment> mergeAnnualGuideFallbackAssignments(
+            LocalDate date,
+            String canonicalDayKey,
+            List<LiturgicalReadingAssignment> assignments,
+            String requestedSlot
+    ) {
+        if (assignments == null || assignments.isEmpty()) {
+            return assignments;
+        }
+
+        boolean hasEpistle = hasReadingType(assignments, "epistle");
+        boolean hasGospel = hasReadingType(assignments, "gospel");
+        if (!hasEpistle || hasGospel) {
+            return assignments;
+        }
+
+        String effectiveSlot = assignments.stream()
+                .map(LiturgicalReadingAssignment::getSlot)
+                .filter(this::hasText)
+                .findFirst()
+                .orElse(requestedSlot);
+
+        return annualGuideReadingRuleService
+                .buildWeekdayGospelFallback(date, DEFAULT_TRADITION, canonicalDayKey, effectiveSlot)
+                .map(fallback -> appendAssignment(assignments, fallback))
+                .orElse(assignments);
+    }
+
+    private boolean hasReadingType(List<LiturgicalReadingAssignment> assignments, String readingType) {
+        if (assignments == null || assignments.isEmpty() || !hasText(readingType)) {
+            return false;
+        }
+
+        return assignments.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(a -> readingType.equalsIgnoreCase(a.getReadingType()) && hasText(a.getReadingKey()));
+    }
+
+    private List<LiturgicalReadingAssignment> appendAssignment(
+            List<LiturgicalReadingAssignment> assignments,
+            LiturgicalReadingAssignment fallback
+    ) {
+        List<LiturgicalReadingAssignment> merged = new ArrayList<>(assignments);
+        merged.add(fallback);
+        return merged;
     }
 
     private List<String> buildEffectiveLookupKeys(String canonicalDayKey, List<String> lookupDayKeys) {

@@ -26,7 +26,6 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
     private static final String READING_TYPE_GOSPEL = "gospel";
 
     private static final String THEOPHANY_AFTER_SUNDAY_DAY_KEY = "THEOPHANY_AFTER_SUNDAY";
-    private static final String THEOPHANY_AFTER_SUNDAY_NAME_AR = "الأحد الذي بعد عيد الظهور الإلهي";
 
     private final TransitionalSundayOverrideRepository overrideRepository;
     private final PaschaDateCalculator paschaDateCalculator;
@@ -93,7 +92,7 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
                     .overrideApplied(false)
                     .effectiveDayKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY)
                     .effectiveReadingDayKey(THEOPHANY_AFTER_SUNDAY_DAY_KEY)
-                    .effectiveLiturgicalName(THEOPHANY_AFTER_SUNDAY_NAME_AR)
+                    .effectiveLiturgicalName(firstNonBlank(baseLiturgicalName, THEOPHANY_AFTER_SUNDAY_DAY_KEY))
                     .effectiveEpistleKey(epistleKey)
                     .effectiveGospelKey(gospelKey)
                     .decisionBasis("SPECIAL_MOVABLE_FEAST")
@@ -206,7 +205,7 @@ public class TransitionalSundayResolverServiceImpl implements TransitionalSunday
     }
 
     private String buildVirtualLiturgicalName(LocalDate date) {
-        return "أحد انتقالي قبل التريودي";
+        return buildVirtualDayKey(date);
     }
 
     private String firstNonBlank(String first, String second) {

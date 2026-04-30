@@ -48,6 +48,7 @@ public class ReadingContextServiceImpl implements ReadingContextService {
 
         return ReadingContext.builder()
                 .tradition(resolvedTradition)
+                .date(date)
                 .calendarDayKey(calendarDayKey)
                 .readingDayKey(readingDayKey)
                 .dayKey(outwardDayKey)

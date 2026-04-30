@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -14,6 +15,8 @@ import java.util.List;
 public class ReadingContext {
 
     private String tradition;
+
+    private LocalDate date;
 
     private String calendarDayKey;
     private String readingDayKey;

@@ -3,6 +3,7 @@ package at.antiochorthodox.liturgy.reading.v2.service;
 import at.antiochorthodox.liturgy.model.LiturgicalReadingAssignment;
 import at.antiochorthodox.liturgy.reading.v2.dto.ReadingContext;
 import at.antiochorthodox.liturgy.repository.LiturgicalReadingAssignmentRepository;
+import at.antiochorthodox.liturgy.service.AnnualGuideReadingRuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class LiturgicalReadingAssignmentQueryServiceImpl implements LiturgicalRe
     private static final String DEFAULT_TRADITION = "ANTIOCHIAN";
 
     private final LiturgicalReadingAssignmentRepository assignmentRepository;
+    private final AnnualGuideReadingRuleService annualGuideReadingRuleService;
 
     @Override
     public List<LiturgicalReadingAssignment> findAssignmentsForDay(ReadingContext context) {
@@ -29,7 +31,7 @@ public class LiturgicalReadingAssignmentQueryServiceImpl implements LiturgicalRe
                             lookupDayKey
                     );
             if (!found.isEmpty()) {
-                return found;
+                return mergeAnnualGuideFallbackAssignments(context, found, null);
             }
         }
         return List.of();
@@ -46,7 +48,7 @@ public class LiturgicalReadingAssignmentQueryServiceImpl implements LiturgicalRe
                             slot
                     );
             if (!found.isEmpty()) {
-                return found;
+                return mergeAnnualGuideFallbackAssignments(context, found, slot);
             }
         }
         return List.of();
@@ -64,11 +66,73 @@ public class LiturgicalReadingAssignmentQueryServiceImpl implements LiturgicalRe
                             serviceKey
                     );
             if (!exact.isEmpty()) {
-                return exact;
+                return mergeAnnualGuideFallbackAssignments(context, exact, null);
             }
         }
 
         return List.of();
+    }
+
+
+    private List<LiturgicalReadingAssignment> mergeAnnualGuideFallbackAssignments(
+            ReadingContext context,
+            List<LiturgicalReadingAssignment> assignments,
+            String requestedSlot
+    ) {
+        if (assignments == null || assignments.isEmpty()) {
+            return assignments;
+        }
+
+        boolean hasEpistle = hasReadingType(assignments, "epistle");
+        boolean hasGospel = hasReadingType(assignments, "gospel");
+        if (!hasEpistle || hasGospel) {
+            return assignments;
+        }
+
+        String dayKey = firstNonBlank(
+                firstNonBlank(context.getReadingDayKey(), context.getDayKey()),
+                context.getCalendarDayKey()
+        );
+
+        String effectiveSlot = assignments.stream()
+                .map(LiturgicalReadingAssignment::getSlot)
+                .filter(this::hasText)
+                .findFirst()
+                .orElse(requestedSlot);
+
+        return annualGuideReadingRuleService
+                .buildWeekdayGospelFallback(
+                        context.getDate(),
+                        resolveTradition(context),
+                        dayKey,
+                        effectiveSlot
+                )
+                .map(fallback -> appendAssignment(assignments, fallback))
+                .orElse(assignments);
+    }
+
+    private boolean hasReadingType(List<LiturgicalReadingAssignment> assignments, String readingType) {
+        if (assignments == null || assignments.isEmpty() || !hasText(readingType)) {
+            return false;
+        }
+
+        return assignments.stream()
+                .anyMatch(a -> a != null
+                        && readingType.equalsIgnoreCase(a.getReadingType())
+                        && hasText(a.getReadingKey()));
+    }
+
+    private List<LiturgicalReadingAssignment> appendAssignment(
+            List<LiturgicalReadingAssignment> assignments,
+            LiturgicalReadingAssignment fallback
+    ) {
+        List<LiturgicalReadingAssignment> merged = new ArrayList<>(assignments);
+        merged.add(fallback);
+        return merged;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return hasText(first) ? first : second;
     }
 
     private String resolveTradition(ReadingContext context) {
