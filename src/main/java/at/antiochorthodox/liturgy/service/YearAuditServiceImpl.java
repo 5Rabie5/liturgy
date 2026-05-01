@@ -33,10 +33,16 @@ public class YearAuditServiceImpl {
     private static final String READING_TYPE_EPISTLE = "epistle";
     private static final String READING_TYPE_GOSPEL = "gospel";
 
+    private static final String CROSS_BEFORE_SUNDAY_DAY_KEY = "CROSS_BEFORE_SUNDAY";
     private static final String CROSS_AFTER_SUNDAY_DAY_KEY = "CROSS_AFTER_SUNDAY";
+    private static final String THEOPHANY_DAY_KEY = "THEOPHANY";
+    private static final String PRESENTATION_OF_LORD_DAY_KEY = "PRESENTATION_OF_LORD";
     private static final String ANNUNCIATION_DAY_KEY = "ANNUNCIATION";
 
+    private static final MonthDay THEOPHANY_FEAST_DATE = MonthDay.of(1, 6);
+    private static final MonthDay NATIVITY_FEAST_DATE = MonthDay.of(12, 25);
     private static final MonthDay CROSS_FEAST_DATE = MonthDay.of(9, 14);
+
     private static final MonthDay FATHERS_7TH_COUNCIL_WINDOW_START = MonthDay.of(10, 11);
     private static final MonthDay FATHERS_7TH_COUNCIL_WINDOW_END = MonthDay.of(10, 17);
     private static final MonthDay FOREFATHERS_WINDOW_START = MonthDay.of(12, 11);
@@ -45,7 +51,29 @@ public class YearAuditServiceImpl {
     private static final MonthDay SUNDAY_BEFORE_NATIVITY_WINDOW_END = MonthDay.of(12, 24);
 
     private static final Map<MonthDay, String> FIXED_DATE_FEAST_DAY_KEYS = Map.of(
+            THEOPHANY_FEAST_DATE, THEOPHANY_DAY_KEY,
+            MonthDay.of(2, 2), PRESENTATION_OF_LORD_DAY_KEY,
             MonthDay.of(3, 25), ANNUNCIATION_DAY_KEY
+    );
+
+    /*
+     * These dates may appear as fixed-feast labels in the calendar,
+     * but should not always force an epistle/gospel binding in the year audit.
+     *
+     * 02-01: Forefeast of the Presentation / Meeting of the Lord.
+     * 02-09: Leave-taking of the Presentation / Meeting of the Lord.
+     * 03-24: Forefeast of the Annunciation.
+     * 05-07: Appearance of the sign of the Cross in Jerusalem.
+     *
+     * Important:
+     * If one of these labels falls on a Sunday, do not hide the Sunday.
+     * Example: 2032-02-01 is also a transitional Sunday before Triodion.
+     */
+    private static final Set<MonthDay> LABEL_ONLY_FIXED_FEAST_DATES = Set.of(
+            MonthDay.of(2, 1),
+            MonthDay.of(2, 9),
+            MonthDay.of(3, 24),
+            MonthDay.of(5, 7)
     );
 
     private static final Set<String> SPECIAL_MOVABLE_DAY_KEYS = Set.of(
@@ -110,8 +138,8 @@ public class YearAuditServiceImpl {
 
         long problemDays = items.stream()
                 .filter(item -> item.getIssueTypes() != null)
-                .filter(item -> !(item.getIssueTypes().size() == 1
-                        && item.getIssueTypes().contains(YearAuditIssueType.OK)))
+                .filter(item -> item.getIssueTypes().stream()
+                        .anyMatch(this::isActionableIssue))
                 .count();
 
         return YearAuditReport.builder()
@@ -155,60 +183,76 @@ public class YearAuditServiceImpl {
 
     private AuditDayResult resolveAuditBinding(LocalDate date, LiturgicalCalendarDay rawResult) {
         AuditDayResult result = AuditDayResult.from(rawResult);
-        if (result == null) {
-            return null;
-        }
-
-        if (hasText(result.epistleKey) && hasText(result.gospelKey)) {
-            return result;
-        }
 
         String specialFeastDayKey = resolveSpecialFeastDayKey(date);
-        if (!hasText(specialFeastDayKey)) {
-            return result;
-        }
 
-        List<LiturgicalReadingAssignment> assignments =
-                assignmentRepository.findByTraditionAndDayKeyAndSlotOrderByServiceKeyAscSequenceAsc(
-                        TRADITION,
-                        specialFeastDayKey,
-                        LITURGY_SLOT
+        if (hasText(specialFeastDayKey)) {
+            List<LiturgicalReadingAssignment> assignments =
+                    assignmentRepository.findByTraditionAndDayKeyAndSlotOrderByServiceKeyAscSequenceAsc(
+                            TRADITION,
+                            specialFeastDayKey,
+                            LITURGY_SLOT
+                    );
+
+            if (assignments != null && !assignments.isEmpty()) {
+                String epistleKey = firstNonBlank(
+                        findReadingKey(assignments, READING_TYPE_EPISTLE),
+                        result != null ? result.epistleKey : null
                 );
 
-        if (assignments == null || assignments.isEmpty()) {
+                String gospelKey = firstNonBlank(
+                        findReadingKey(assignments, READING_TYPE_GOSPEL),
+                        result != null ? result.gospelKey : null
+                );
+
+                String sourceType = firstNonBlank(
+                        findFirstSourceType(assignments),
+                        result != null ? result.readingSourceType : null
+                );
+
+                String liturgicalName = result != null
+                        ? firstNonBlank(result.liturgicalName, firstNonBlank(result.movableFeast, result.fixedFeast))
+                        : specialFeastDayKey;
+
+                return new AuditDayResult(
+                        specialFeastDayKey,
+                        liturgicalName,
+                        LITURGY_SLOT,
+                        sourceType,
+                        epistleKey,
+                        gospelKey,
+                        result != null ? result.fixedFeast : null,
+                        result != null ? result.movableFeast : null
+                );
+            }
+
+            /*
+             * Major fixed feasts must not be hidden by ordinary weekday readings.
+             * Example: Jan 6 must remain THEOPHANY until a THEOPHANY assignment is verified.
+             */
+            if (isFixedDateFeast(date)) {
+                String liturgicalName = result != null
+                        ? firstNonBlank(result.fixedFeast, result.liturgicalName)
+                        : specialFeastDayKey;
+
+                return new AuditDayResult(
+                        specialFeastDayKey,
+                        liturgicalName,
+                        LITURGY_SLOT,
+                        "fixed_feast",
+                        null,
+                        null,
+                        result != null ? result.fixedFeast : null,
+                        result != null ? result.movableFeast : null
+                );
+            }
+        }
+
+        if (result != null && hasText(result.epistleKey) && hasText(result.gospelKey)) {
             return result;
         }
 
-        String epistleKey = firstNonBlank(
-                findReadingKey(assignments, READING_TYPE_EPISTLE),
-                result.epistleKey
-        );
-
-        String gospelKey = firstNonBlank(
-                findReadingKey(assignments, READING_TYPE_GOSPEL),
-                result.gospelKey
-        );
-
-        String sourceType = firstNonBlank(
-                findFirstSourceType(assignments),
-                result.readingSourceType
-        );
-
-        String liturgicalName = firstNonBlank(
-                result.liturgicalName,
-                firstNonBlank(result.movableFeast, result.fixedFeast)
-        );
-
-        return new AuditDayResult(
-                specialFeastDayKey,
-                liturgicalName,
-                LITURGY_SLOT,
-                sourceType,
-                epistleKey,
-                gospelKey,
-                result.fixedFeast,
-                result.movableFeast
-        );
+        return result;
     }
 
     private String resolveSpecialFeastDayKey(LocalDate date) {
@@ -223,6 +267,18 @@ public class YearAuditServiceImpl {
 
         if (date.getDayOfWeek() != DayOfWeek.SUNDAY) {
             return null;
+        }
+
+        if (isSundayBeforeTheophany(date)) {
+            return LiturgicalLabelService.DAY_KEY_SUNDAY_BEFORE_THEOPHANY;
+        }
+
+        if (isSundayAfterTheophany(date)) {
+            return LiturgicalLabelService.DAY_KEY_SUNDAY_AFTER_THEOPHANY;
+        }
+
+        if (isSundayBeforeCross(date)) {
+            return CROSS_BEFORE_SUNDAY_DAY_KEY;
         }
 
         if (isSundayAfterCross(date)) {
@@ -241,12 +297,61 @@ public class YearAuditServiceImpl {
             return LiturgicalLabelService.DAY_KEY_SUNDAY_BEFORE_NATIVITY;
         }
 
+        if (isSundayAfterNativity(date)) {
+            return LiturgicalLabelService.DAY_KEY_SUNDAY_AFTER_NATIVITY;
+        }
+
         return null;
     }
 
+    private boolean isFixedDateFeast(LocalDate date) {
+        return date != null && FIXED_DATE_FEAST_DAY_KEYS.containsKey(MonthDay.from(date));
+    }
+
+    private boolean isSundayBeforeTheophany(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        return date.equals(sundayBeforeTheophanyForYear(date.getYear()))
+                || date.equals(sundayBeforeTheophanyForYear(date.getYear() + 1));
+    }
+
+    private LocalDate sundayBeforeTheophanyForYear(int year) {
+        LocalDate theophany = THEOPHANY_FEAST_DATE.atYear(year);
+        return theophany.with(TemporalAdjusters.previous(DayOfWeek.SUNDAY));
+    }
+
+    private boolean isSundayAfterTheophany(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        LocalDate theophany = THEOPHANY_FEAST_DATE.atYear(date.getYear());
+        LocalDate sundayAfter = theophany.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+
+        return date.equals(sundayAfter);
+    }
+
+    private boolean isSundayBeforeCross(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        LocalDate crossFeast = CROSS_FEAST_DATE.atYear(date.getYear());
+        LocalDate sundayBeforeCross = crossFeast.with(TemporalAdjusters.previous(DayOfWeek.SUNDAY));
+
+        return date.equals(sundayBeforeCross);
+    }
+
     private boolean isSundayAfterCross(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
         LocalDate crossFeast = CROSS_FEAST_DATE.atYear(date.getYear());
         LocalDate sundayAfterCross = crossFeast.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+
         return date.equals(sundayAfterCross);
     }
 
@@ -260,6 +365,20 @@ public class YearAuditServiceImpl {
 
     private boolean isSundayBeforeNativity(LocalDate date) {
         return isSundayInWindow(date, SUNDAY_BEFORE_NATIVITY_WINDOW_START, SUNDAY_BEFORE_NATIVITY_WINDOW_END);
+    }
+
+    private boolean isSundayAfterNativity(LocalDate date) {
+        if (date == null || date.getDayOfWeek() != DayOfWeek.SUNDAY) {
+            return false;
+        }
+
+        return date.equals(sundayAfterNativityForYear(date.getYear()))
+                || date.equals(sundayAfterNativityForYear(date.getYear() - 1));
+    }
+
+    private LocalDate sundayAfterNativityForYear(int year) {
+        LocalDate nativity = NATIVITY_FEAST_DATE.atYear(year);
+        return nativity.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
     }
 
     private boolean isSundayInWindow(LocalDate date, MonthDay start, MonthDay end) {
@@ -306,10 +425,23 @@ public class YearAuditServiceImpl {
         boolean hasGospel = result != null && hasText(result.gospelKey);
         boolean hasAnyReading = hasEpistle || hasGospel;
         boolean hasFeast = result != null && (hasText(result.fixedFeast) || hasText(result.movableFeast));
+        boolean isLabelOnlyFixedFeast = isLabelOnlyFixedFeast(date, result);
+        boolean isSundayLabelOnlyFixedFeast = isSundayLabelOnlyFixedFeast(date, result);
+
         String normalizedSlot = normalizeSlot(result != null ? result.readingSlot : null);
         String effectiveDayKey = hasText(result != null ? result.liturgicalDayKey : null)
                 ? result.liturgicalDayKey
                 : calendarDayKey;
+
+        if (!hasAnyReading && isLabelOnlyFixedFeast) {
+            issues.add(YearAuditIssueType.EXPECTED_NO_LITURGY);
+            return new ArrayList<>(issues);
+        }
+
+        if (!hasAnyReading && shouldBeExpectedNoLiturgy(date, calendarDayKey, result)) {
+            issues.add(YearAuditIssueType.EXPECTED_NO_LITURGY);
+            return new ArrayList<>(issues);
+        }
 
         if (!hasCalendarDayKey && !hasResolvedDayKey) {
             issues.add(YearAuditIssueType.MISSING_DAY_KEY);
@@ -344,9 +476,11 @@ public class YearAuditServiceImpl {
 
         if (!hasAnyReading) {
             if (hasFeast) {
-                issues.add(YearAuditIssueType.FEAST_PRESENT_BUT_NOT_BOUND);
-            } else if (shouldBeExpectedNoLiturgy(date, calendarDayKey, result)) {
-                issues.add(YearAuditIssueType.EXPECTED_NO_LITURGY);
+                if (isSundayLabelOnlyFixedFeast && isTransitionalSundayDayKey(effectiveDayKey)) {
+                    issues.add(YearAuditIssueType.TRUE_MISSING_ASSIGNMENT);
+                } else {
+                    issues.add(YearAuditIssueType.FEAST_PRESENT_BUT_NOT_BOUND);
+                }
             } else if (hasCalendarDayKey || hasResolvedDayKey) {
                 issues.add(YearAuditIssueType.TRUE_MISSING_ASSIGNMENT);
             }
@@ -357,6 +491,38 @@ public class YearAuditServiceImpl {
         }
 
         return new ArrayList<>(issues);
+    }
+
+    private boolean isLabelOnlyFixedFeast(LocalDate date, AuditDayResult result) {
+        if (!isLabelOnlyFixedFeastDate(date, result)) {
+            return false;
+        }
+
+        return date.getDayOfWeek() != DayOfWeek.SUNDAY;
+    }
+
+    private boolean isSundayLabelOnlyFixedFeast(LocalDate date, AuditDayResult result) {
+        if (!isLabelOnlyFixedFeastDate(date, result)) {
+            return false;
+        }
+
+        return date.getDayOfWeek() == DayOfWeek.SUNDAY;
+    }
+
+    private boolean isLabelOnlyFixedFeastDate(LocalDate date, AuditDayResult result) {
+        if (date == null || result == null) {
+            return false;
+        }
+
+        if (!hasText(result.fixedFeast)) {
+            return false;
+        }
+
+        return LABEL_ONLY_FIXED_FEAST_DATES.contains(MonthDay.from(date));
+    }
+
+    private boolean isTransitionalSundayDayKey(String dayKey) {
+        return hasText(dayKey) && dayKey.startsWith("TRANSITIONAL_SUNDAY_");
     }
 
     private boolean isIntentionalGospelOnlyDayResult(
@@ -468,7 +634,11 @@ public class YearAuditServiceImpl {
         }
 
         if (issueTypes.contains(YearAuditIssueType.EXPECTED_NO_LITURGY)) {
-            return "Administrative heuristic: non-Sunday/non-feast day with no resolved liturgy result.";
+            if (result != null && hasText(result.fixedFeast)) {
+                return "Label-only fixed feast with no liturgy assignment expected in the current data model.";
+            }
+
+            return "Administrative heuristic: non-Sunday day with no resolved liturgy result.";
         }
 
         if (issueTypes.contains(YearAuditIssueType.MISSING_DAY_KEY)) {
@@ -494,6 +664,15 @@ public class YearAuditServiceImpl {
         Map<YearAuditIssueType, Long> counts = new LinkedHashMap<>();
         Arrays.stream(YearAuditIssueType.values()).forEach(type -> counts.put(type, 0L));
         return counts;
+    }
+
+    private boolean isActionableIssue(YearAuditIssueType issueType) {
+        if (issueType == null) {
+            return false;
+        }
+
+        return issueType != YearAuditIssueType.OK
+                && issueType != YearAuditIssueType.EXPECTED_NO_LITURGY;
     }
 
     private boolean isSpecialMovable(String dayKey) {
